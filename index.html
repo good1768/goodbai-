@@ -314,7 +314,7 @@ body{
 .to-top:active{transform:scale(.94)}
 @media(max-width:420px){.to-top{bottom:88px}}
 /* 专注计时器 */
-.tm-fab{position:fixed;right:16px;bottom:150px;width:52px;height:52px;border-radius:50%;border:none;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.22);cursor:pointer;z-index:62;transition:transform .15s}
+.tm-fab{position:fixed;right:16px;bottom:150px;width:52px;height:52px;border-radius:50%;border:none;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.22);cursor:pointer;z-index:62;transition:transform .15s;touch-action:none;-webkit-user-select:none;user-select:none}
 .tm-fab:active{transform:scale(.92)}
 .tm-fab svg{width:24px;height:24px}
 @media(max-width:420px){.tm-fab{bottom:154px}}
@@ -2060,6 +2060,39 @@ function tmRecord(){
   refreshAll();
 }
 document.getElementById('tmFab').onclick = tmOpen;
+/* ===== 专注计时悬浮球可拖动（防误触：拖动后不触发打开） ===== */
+(function(){
+  const fab=document.getElementById('tmFab');
+  if(!fab) return;
+  let dragging=false, moved=false, sx=0, sy=0, ox=0, oy=0;
+  try{ const p=JSON.parse(localStorage.getItem('gk72_fabpos')||'null'); if(p && typeof p.x==='number'){ fab.style.left=p.x+'px'; fab.style.top=p.y+'px'; fab.style.right='auto'; fab.style.bottom='auto'; } }catch(e){}
+  fab.addEventListener('pointerdown', e=>{
+    dragging=true; moved=false;
+    sx=e.clientX; sy=e.clientY;
+    const r=fab.getBoundingClientRect();
+    ox=e.clientX-r.left; oy=e.clientY-r.top;
+    fab.style.transition='none';
+    try{ fab.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  fab.addEventListener('touchmove', e=>{ if(dragging){ e.preventDefault(); } }, {passive:false});
+  fab.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    if(Math.abs(e.clientX-sx)>5 || Math.abs(e.clientY-sy)>5) moved=true;
+    const w=fab.offsetWidth, h=fab.offsetHeight;
+    const x=Math.max(0, Math.min(window.innerWidth-w, e.clientX-ox));
+    const y=Math.max(0, Math.min(window.innerHeight-h, e.clientY-oy));
+    fab.style.left=x+'px'; fab.style.top=y+'px'; fab.style.right='auto'; fab.style.bottom='auto';
+  });
+  const up=()=>{
+    if(!dragging) return;
+    dragging=false;
+    fab.style.transition='transform .15s';
+    if(moved){ try{ localStorage.setItem('gk72_fabpos', JSON.stringify({x:parseFloat(fab.style.left), y:parseFloat(fab.style.top)})); }catch(e){} }
+  };
+  fab.addEventListener('pointerup', up);
+  fab.addEventListener('pointercancel', up);
+  fab.addEventListener('click', e=>{ if(moved){ e.stopPropagation(); e.stopImmediatePropagation(); moved=false; } }, true);
+})();
 document.getElementById('tmTop').onclick = tmClose;
 document.getElementById('tmClose').onclick = tmClose;
 document.getElementById('tmModeCd').onclick = ()=> tmSetMode('cd');
@@ -2422,7 +2455,7 @@ function syncRestore(snap){
 function syncQueue(){
   if(!syncReady()) return;
   if(syncTimer) clearTimeout(syncTimer);
-  syncTimer=setTimeout(()=>{ syncTimer=null; syncPush(); }, 3000);
+  syncTimer=setTimeout(()=>{ syncTimer=null; syncPush(); }, 1000);
 }
 function gistHeaders(){ return {'Authorization':'Bearer '+syncCfg.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'}; }
 function syncPush(){
@@ -2438,28 +2471,29 @@ function syncPush(){
     setSyncStatus('同步成功 · '+fmtSyncTime(ts));
   }).catch(e=>{ setSyncStatus('同步失败：'+(e.message||e)); });
 }
-function syncPull(){
+function syncPull(opts){
   if(!syncReady()) return;
-  if(!syncCfg.gid){ setSyncStatus('还没有云端数据：请先点一次「立即同步（上传）」'); return; }
-  setSyncStatus('拉取中…');
+  const silent = !!(opts && opts.silent);
+  if(!syncCfg.gid){ if(!silent) setSyncStatus('还没有云端数据：请先点一次「立即同步（上传）」'); return; }
+  if(!silent) setSyncStatus('拉取中…');
   return fetch('https://api.github.com/gists/'+syncCfg.gid,{headers:{'Authorization':'Bearer '+syncCfg.token,'Accept':'application/vnd.github+json'}})
     .then(r=>{ if(!r.ok) throw new Error('读取失败 '+r.status); return r.json(); })
     .then(g=>{
       const f=(g.files&&g.files['gk77_data.json']&&g.files['gk77_data.json'].content)||'';
-      if(!f){ setSyncStatus('云端数据为空'); return; }
-      let p={}; try{ p=JSON.parse(f); }catch(e){ setSyncStatus('云端数据解析失败'); return; }
+      if(!f){ if(!silent) setSyncStatus('云端数据为空'); return; }
+      let p={}; try{ p=JSON.parse(f); }catch(e){ if(!silent) setSyncStatus('云端数据解析失败'); return; }
       const cloudTs=Date.parse(p.updated||'');
       const localTs=+localStorage.getItem(SYNC_TS_KEY)||0;
       if(cloudTs && cloudTs>localTs){
         syncRestore(p.data||{});
         localStorage.setItem(SYNC_TS_KEY, String(cloudTs));
         setSyncStatus('已拉取云端数据 · '+fmtSyncTime(cloudTs));
-        showToast('已同步云端最新进度');
+        if(!silent) showToast('已同步云端最新进度');
         applyTheme(); refreshAll(); renderCfgForm(); renderRestList(); renderColorForm(); renderNodesForm(); renderSz();
       } else {
-        setSyncStatus('本地已是最新 · '+fmtSyncTime(localTs||Date.now()));
+        if(!silent) setSyncStatus('本地已是最新 · '+fmtSyncTime(localTs||Date.now()));
       }
-    }).catch(e=>{ setSyncStatus('拉取失败：'+(e.message||e)); });
+    }).catch(e=>{ if(!silent) setSyncStatus('拉取失败：'+(e.message||e)); });
 }
 document.getElementById('syncSave').onclick = ()=>{
   syncCfg.token = document.getElementById('syncToken').value.trim();
@@ -2481,6 +2515,38 @@ document.getElementById('syncPullBtn').onclick = ()=>{
 document.querySelectorAll('.tabbar button').forEach(b=>{
   b.onclick = ()=> go(b.dataset.routeBtn);
 });
+/* ===== 左右滑动切换板块 ===== */
+(function(){
+  const tabRoutes=['home','calendar','examlog','weekly','settings'];
+  let sx=0, sy=0, st=0;
+  function blocked(){
+    const q=document.getElementById('qianMask');
+    if(q && q.classList.contains('on')) return true;
+    const ids=['sheet','tmPanel','sheetMask'];
+    for(let i=0;i<ids.length;i++){ const el=document.getElementById(ids[i]); if(el && el.classList.contains('show')) return true; }
+    return false;
+  }
+  document.body.addEventListener('touchstart', e=>{
+    if(blocked()) return;
+    if(e.target.closest && e.target.closest('#tmFab')) return;
+    const tag=(e.target.tagName||'').toUpperCase();
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+    const t=e.touches[0];
+    sx=t.clientX; sy=t.clientY; st=Date.now();
+  }, {passive:true});
+  document.body.addEventListener('touchend', e=>{
+    if(!sx) return;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-sx, dy=t.clientY-sy, dt=Date.now()-st;
+    sx=0; sy=0;
+    if(Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5 || dt>600) return;
+    const cur=document.querySelector('.view.active');
+    const ci=tabRoutes.indexOf(cur?cur.dataset.route:'home');
+    const ni = dx<0 ? ci+1 : ci-1;
+    if(ni<0 || ni>=tabRoutes.length) return;
+    go(tabRoutes[ni]);
+  }, {passive:true});
+})();
 /* ===== 页面样式切换（宽屏自适应 / 原版窄屏） ===== */
 const UI_STYLE_KEY='gk72_uistyle';
 const uiWideBtn=document.getElementById('uiWide'), uiNarrowBtn=document.getElementById('uiNarrow');
@@ -2712,6 +2778,11 @@ toTopBtn.onclick = ()=>{ window.scrollTo({top:0, behavior:'smooth'}); };
 applyTheme();
 loadSyncCfg(); renderSyncStatus();
 setTimeout(()=>{ syncPull(); }, 2500);
+// 从后台切回页面 / 窗口重新获得焦点时，自动静默拉取云端最新进度（无需手动点）
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) syncPull({silent:true}); });
+window.addEventListener('focus', ()=>{ syncPull({silent:true}); });
+// 页面保持打开时，每 5 秒自动静默拉取一次，另一台设备的操作会快速同步过来（5秒轮询在GitHub免费额度内，两台设备同开约1440次/小时）
+setInterval(()=>{ syncPull({silent:true}); }, 5000);
 tick(); setInterval(tick, 1000);
 refreshProgress();
 renderPlanList();
