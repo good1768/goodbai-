@@ -99,6 +99,16 @@ body{
 .dur-card .dur-tip{font-size:11px;color:var(--ink2);margin-top:7px}
 .dur-card .dur-tip b{color:var(--primary);font-weight:700}
 .dur-card .dur-tip .ok{color:#2F9E63;font-weight:700}
+.dur-card .dur-add{margin-left:8px;border:1px solid var(--primary);background:var(--primary-soft);color:var(--primary);font-size:11.5px;font-weight:700;border-radius:7px;padding:3px 9px;cursor:pointer;flex:none;line-height:1.5}
+.dur-card .dur-add:active{background:var(--primary);color:#fff}
+.dur-card .dur-open-hint{margin-top:7px;font-size:11px;color:var(--ink3,#9AA8A0);cursor:pointer}
+.dur-mgmt-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:36vh;overflow:auto}
+.dur-mgmt-i{display:flex;align-items:center;gap:8px;background:#F7FAF8;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px}
+.dur-mgmt-i .dm-note{flex:1;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dur-mgmt-i .dm-h{color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums}
+.dm-btn{border:1px solid var(--line);background:#fff;border-radius:6px;width:26px;height:26px;font-size:14px;line-height:1;cursor:pointer;color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none}
+.dm-btn:active{background:var(--primary);border-color:var(--primary);color:#fff}
+.dm-minus:active{background:#C2504A;border-color:#C2504A;color:#fff}
 
 /* 打卡用时弹框 */
 .dur-quick{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
@@ -163,6 +173,11 @@ body{
 .day-head .d{font-size:16px;font-weight:900;font-variant-numeric:tabular-nums}
 .day-head .meta{font-size:11px;color:var(--ink2);line-height:1.4}
 .day-head .spacer{flex:1}
+.day-fold .day-head{cursor:pointer;user-select:none}
+.day-fold .fold-arrow{flex:none;width:14px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink2);font-size:11px;transition:transform .18s}
+.day-fold .fold-arrow::after{content:'▾'}
+.day-fold .fold-arrow.closed::after{content:'▸'}
+.day-fold .day-body.hide{display:none}
 .chip{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--primary-soft);color:var(--primary);font-weight:600;white-space:nowrap}
 .chip.stage{background:#EEF1F6;color:#4A5B8C}
 .chip.rest{background:#F0F0F0;color:#7A7A7A}
@@ -622,10 +637,10 @@ body.narrow .tune{gap:10px!important}
 
     <div class="set-card">
       <div class="h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>速算练习记录</div>
-      <div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">每天 3 页速算题本：记下用时和错题数，看时间变快、正确率变高。</div>
+      <div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">每天 3 页速算题本：记下用时和对题数，看时间变快、正确率变高。</div>
       <label class="set-label">日期</label>
       <input type="date" class="set-in" id="ssDate">
-      <div style="font-size:11px;color:var(--ink2);margin:0 0 6px;font-weight:700">各题型错题数 / 总题数 / 用时（分）</div>
+      <div style="font-size:11px;color:var(--ink2);margin:0 0 6px;font-weight:700">各题型对题数 / 总题数 / 用时（分）</div>
       <div id="ssItems"></div>
       <div id="ssTotalTime" style="font-size:13px;font-weight:700;color:var(--ink);margin-top:10px;padding:8px 12px;background:#F0F7F3;border-radius:8px">总用时：--</div>
       <button class="set-btn" id="ssAdd" style="margin-top:14px">保存速算记录</button>
@@ -969,6 +984,27 @@ body.narrow .tune{gap:10px!important}
   </div>
 </div>
 
+<div class="modal-mask" id="extraMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">今日学习时长记录</div>
+    <div class="modal-body">
+      <div class="dur-mgmt-list" id="durMgmtList"></div>
+      <div class="modal-hint" style="font-weight:400">用 ＋ / − 调整已有记录；下方新增不在计划里的学习时长。</div>
+      <input type="text" class="modal-date" id="exNote" placeholder="学了什么？如：言语刷题 / 晨读" style="width:100%;box-sizing:border-box;margin-bottom:9px">
+      <div class="dur-input-row">
+        <input type="number" class="modal-date" id="exH" min="0" max="24" placeholder="0" style="flex:1">
+        <span class="dur-unit">小时</span>
+        <input type="number" class="modal-date" id="exM" min="0" max="59" placeholder="0" style="flex:1">
+        <span class="dur-unit">分钟</span>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="exCancel">关闭</button>
+      <button class="modal-ok" id="exOk">添加</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-mask" id="ckAllMask" style="display:none">
   <div class="modal">
     <div class="modal-title">补打当天全部任务</div>
@@ -1058,14 +1094,21 @@ const SS_ITEMS=[
   {key:'a', name:'两位数×一位数', t:40},
   {key:'b', name:'两位数加减', t:20},
   {key:'c', name:'三位数加减', t:20},
-  {key:'d', name:'多位÷两位', t:10},
-  {key:'e', name:'多位÷三位', t:10},
-  {key:'f', name:'四位数除法选择', t:10}
+  {key:'d', name:'多位÷两位', t:20},
+  {key:'e', name:'多位÷三位', t:20},
+  {key:'f', name:'四位数除法选择', t:20}
 ];
 function suanStat(e){
-  let total=0, wrong=0, time=0;
-  SS_ITEMS.forEach(it=>{ const v=e&&e.items&&e.items[it.key]; if(v&&v.t>0){ total+=v.t; wrong+=v.w||0; time+=(v.u||0); } });
-  return {total, wrong, time};
+  let total=0, right=0, time=0;
+  SS_ITEMS.forEach(it=>{
+    const v=e&&e.items&&e.items[it.key];
+    if(v&&v.t>0){
+      total+=v.t;
+      right += (v.r!=null ? v.r : (v.t-(v.w||0))); // 新记录存对题数 r；旧记录存错题数 w，换算成对题数
+      time+=(v.u||0);
+    }
+  });
+  return {total, right, time};
 }
 function fmtMMSS(t){
   t=Math.round(t||0);
@@ -1092,7 +1135,7 @@ function renderSuan(){
   const itemsEl=document.getElementById('ssItems');
   if(itemsEl && !itemsEl.innerHTML){
     itemsEl.innerHTML=SS_ITEMS.map(it=>
-      '<div class="ss-row"><span class="sn">'+it.name+'</span><input type="number" min="0" id="ssw_'+it.key+'" placeholder="错"><span class="sp">/</span><input type="number" min="0" id="sst_'+it.key+'" value="'+it.t+'"><input type="number" min="0" max="999" id="ssm_'+it.key+'" placeholder="分" style="width:46px"><span class="sp">:</span><input type="number" min="0" max="59" id="sss_'+it.key+'" placeholder="秒" style="width:46px"></div>'
+      '<div class="ss-row"><span class="sn">'+it.name+'</span><input type="number" min="0" id="ssw_'+it.key+'" placeholder="对"><span class="sp">/</span><input type="number" min="0" id="sst_'+it.key+'" value="'+it.t+'"><input type="number" min="0" max="999" id="ssm_'+it.key+'" placeholder="分" style="width:46px"><span class="sp">:</span><input type="number" min="0" max="59" id="sss_'+it.key+'" placeholder="秒" style="width:46px"></div>'
     ).join('');
     SS_ITEMS.forEach(it=>{ document.getElementById('ssm_'+it.key).addEventListener('input', suanSumTime); document.getElementById('sss_'+it.key).addEventListener('input', suanSumTime); });
     suanSumTime();
@@ -1104,9 +1147,9 @@ function renderSuan(){
     list.innerHTML='<div style="font-size:12px;color:var(--ink2)">还没有速算记录，做完 3 页就来记一笔吧。</div>';
   } else {
     list.innerHTML=dates.slice().reverse().map(d=>{
-      const e=SS[d]; const {total,wrong,time}=suanStat(e);
-      const rate=total? Math.round((total-wrong)/total*100):0;
-      return '<div class="el-item"><span class="ed">'+d.slice(5)+'</span><span class="en">'+(time? fmtMMSS(time):'')+'</span><span class="es">正确率'+rate+'%（对'+(total-wrong)+'/'+total+'）</span><button class="del" data-ssdel="'+d+'">删除</button></div>';
+      const e=SS[d]; const {total,right,time}=suanStat(e);
+      const rate=total? Math.round(right/total*100):0;
+      return '<div class="el-item"><span class="ed">'+d.slice(5)+'</span><span class="en">'+(time? fmtMMSS(time):'')+'</span><span class="es">正确率'+rate+'%（对'+right+'/'+total+'）</span><button class="del" data-ssdel="'+d+'">删除</button></div>';
     }).join('');
     list.querySelectorAll('[data-ssdel]').forEach(b=>{
       b.onclick=()=>{ delete SS[b.dataset.ssdel]; saveSuan(); renderSuan(); showToast('已删除该条速算记录'); };
@@ -1122,7 +1165,7 @@ function renderSuan(){
   } else {
     const labels=sorted.map(d=>d.slice(5));
     tEl.innerHTML=examLogSVG(labels,[{name:'用时(分)',color:'#3B82C4',data:sorted.map(d=>{const t=suanStat(SS[d]).time; return t? Math.round(t/60*10)/10:null;})}]);
-    rEl.innerHTML=examLogSVG(labels,[{name:'正确率',color:'#2F9E63',data:sorted.map(d=>{const s=suanStat(SS[d]); return s.total?Math.round((s.total-s.wrong)/s.total*100):null;})}]);
+    rEl.innerHTML=examLogSVG(labels,[{name:'正确率',color:'#2F9E63',data:sorted.map(d=>{const s=suanStat(SS[d]); return s.total?Math.round(s.right/s.total*100):null;})}]);
   }
 }
 document.getElementById('ssAdd').onclick=()=>{
@@ -1130,12 +1173,12 @@ document.getElementById('ssAdd').onclick=()=>{
   if(!d || d<'2026-09-17' || d>'2026-11-30'){ showToast('请选择计划区间内的日期'); return; }
   const items={}; let has=false, hasU=false;
   SS_ITEMS.forEach(it=>{
-    const w=+document.getElementById('ssw_'+it.key).value||0;
+    const r=+document.getElementById('ssw_'+it.key).value||0;
     const t=+document.getElementById('sst_'+it.key).value||0;
     const u=((parseInt(document.getElementById('ssm_'+it.key).value)||0)*60+(parseInt(document.getElementById('sss_'+it.key).value)||0));
     if(t>0) has=true;
     if(u>0) hasU=true;
-    items[it.key]={w,t,u};
+    items[it.key]={r,t,u};
   });
   if(!has){ showToast('请填写至少一个题型的总题数'); return; }
   if(!hasU){ showToast('请填写至少一个题型的用时'); return; }
@@ -1147,6 +1190,15 @@ document.getElementById('ssAdd').onclick=()=>{
 
 /* 每日实际学习时长（按任务记录，自动累加；旧格式 {date:总时长} 兼容） */
 let DUR = {}; try{ DUR = JSON.parse(localStorage.getItem(DUR_KEY)||'{}'); }catch(e){}
+/* 兼容修复：旧版计时器曾把"分钟"误存为"小时"（如 112 被当作 112h），自动换算回小时 */
+try{
+  Object.keys(DUR).forEach(_d=>{
+    const _v = DUR[_d];
+    if(_v && typeof _v==='object' && (+_v['timer|timer|专注']||0) > 24){
+      _v['timer|timer|专注'] = Math.round((+_v['timer|timer|专注'])/60*2)/2;
+    }
+  });
+}catch(e){}
 function saveDur(){ localStorage.setItem(DUR_KEY, JSON.stringify(DUR)); syncQueue(); }
 function setTaskDur(date, type, text, hours){
   const v = DUR[date];
@@ -1164,19 +1216,28 @@ function dayHours(date){
   if(typeof v==='number') return v; // 旧格式：当天总时长
   let s = 0;
   Object.keys(v).forEach(k=>{ s += (+v[k]||0); });
-  return Math.round(s*2)/2;
+  return Math.round(s*60)/60; // 精确到分钟
 }
-/* 连续学习天数：从今天（含）往前数连续"全部任务完成"的天数；休息日/无任务日不断链 */
+/* 小时 → "Xh Ym" 显示 */
+function fmtDur(h){
+  h = Math.max(0, (+h)||0);
+  let hh = Math.floor(h);
+  let mm = Math.round((h-hh)*60);
+  if(mm>=60){ hh += 1; mm = 0; }
+  if(hh>0 && mm>0) return hh+'h'+mm+'m';
+  if(hh>0) return hh+'h';
+  return mm+'m';
+}
+/* 连续学习天数：从今天（含）往前数连续"当天有打卡"的天数；休息日/无任务日不断链 */
 function doneStreak(){
   let n = 0;
   let cur = parseDate(todayStr());
-  if(dayStatus(todayStr())!=='done') cur.setDate(cur.getDate()-1);
+  // 今天还没打卡则从昨天开始数（今天未结束，不算断）
+  if(doneCountOf(todayStr()).done===0) cur.setDate(cur.getDate()-1);
   for(;;){
     const ds = fmtDate(cur);
     if(!dayTasks(ds).length) break;
-    const st = dayStatus(ds);
-    if(st==='none'){ /* 休息/无任务日不断链 */ }
-    else if(st!=='done') break;
+    if(doneCountOf(ds).done===0) break; // 有任务但当天没打卡 → 断
     n++;
     cur.setDate(cur.getDate()-1);
   }
@@ -1699,7 +1760,7 @@ function stageChip(stage){
 const TIP_DAYS = {
   '2026-10-21': '【数量保底策略】零基础目标做对 5~8 题即可：不恋战、不纠结，把时间留给资料分析和判断推理这两个提分主力。'
 };
-function dayCardHTML(date){
+function dayCardHTML(date, fold){
   const rows = dayTasks(date);
   if(rows.length===0) return '';
   const r = rows[0];
@@ -1710,15 +1771,17 @@ function dayCardHTML(date){
   const slTasks = splitTasks(r.sl);
   const isRest = effectiveType(r, date)==='周日休息';
   const canCkAll = date < todayStr() && st!=='done' && total>0;
-  let html = '<div class="day-card">';
+  let html = '<div class="day-card'+(fold?' day-fold':'')+'">';
   if(TIP_DAYS[date]){
     html += '<div class="tip-bar">'+TIP_DAYS[date]+'</div>';
   }
   html += '<div class="day-head">' +
+    (fold? '<span class="fold-arrow'+(st==='done'?' closed':'')+'"></span>':'') +
     '<div class="d">'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'</div>' +
     '<div class="meta">'+WEEKS[d.getDay()]+' · '+effectiveType(r, date)+' · '+r.hours+'h'+(total?' · '+done+'/'+total+'':'')+'</div>' +
     '<div class="spacer"></div>' + (canCkAll? '<button class="bk-btn" data-bk="'+date+'">补打全部</button>':'') + stageChip(r.stage) + statusChip(st) +
   '</div>';
+  if(fold) html += '<div class="day-body'+(st==='done'?' hide':'')+'">';
   if(isRest && !r.xc){
     html += '<div class="task"><div class="bd"><span class="txt" style="color:var(--ink2)">周日休息：复盘本周完成情况，规划下周重点</span></div></div>';
   } else {
@@ -1744,6 +1807,7 @@ function dayCardHTML(date){
       html += '</div>';
     }
   }
+  if(fold) html += '</div>';
   html += '</div>';
   return html;
 }
@@ -1783,7 +1847,7 @@ function renderPlanList(){
         '<div class="d" style="font-size:13px">'+st+'</div>' +
         '<div class="meta">'+list.length+' 天</div><div class="spacer"></div>' +
         '</summary>';
-      list.forEach(r=>{ html += dayCardHTML(r.date); });
+      list.forEach(r=>{ html += dayCardHTML(r.date, true); });
       html += '</details>';
     });
   }
@@ -1803,17 +1867,35 @@ function durCardHTML(date){
   let tip;
   if(act>0){
     tip = act>=plan
-      ? '<div class="dur-tip">已记录 <b>'+act+'h</b> · 达到计划 <span class="ok">✓ 达标</span></div>'
-      : '<div class="dur-tip">已记录 <b>'+act+'h</b> / 计划 '+plan+'h · 还差 '+Math.max(Math.round((plan-act)*2)/2,0)+'h</div>';
+      ? '<div class="dur-tip">已记录 <b>'+fmtDur(act)+'</b> · 达到计划 <span class="ok">✓ 达标</span></div>'
+      : '<div class="dur-tip">已记录 <b>'+fmtDur(act)+'</b> / 计划 '+plan+'h · 还差 '+fmtDur(Math.max(plan-act,0))+'</div>';
   } else {
-    tip = '<div class="dur-tip">完成每个任务时填写用时，系统自动累加到这里。</div>';
+    tip = '<div class="dur-tip">完成每个任务时填写用时，或点卡片右上角「＋ 添加」手动记录不在计划里的学习。</div>';
   }
-  return '<div class="dur-card"><div class="dur-head"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>今日学习时长<span class="dur-meta">'+meta+'</span></div>' +
-    '<div class="dur-val"><b>'+act+'h</b>'+(plan? ' / '+plan+'h':'')+'</div>' +
+  return '<div class="dur-card"><div class="dur-head"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>今日学习时长<span class="dur-meta">'+meta+'</span><button class="dur-add" id="durAdd" type="button">＋ 添加</button></div>' +
+    '<div class="dur-val"><b>'+fmtDur(act)+'</b>'+(plan? ' / '+plan+'h':'')+'</div>' +
     '<div class="dur-bar"><i style="width:'+pct+'%"></i></div>' +
-    tip + '</div>';
+    tip + '<div class="dur-open-hint">点卡片查看／调整每条时长记录 ›</div></div>';
 }
 function bindCks(){
+  const durAddEl = document.getElementById('durAdd');
+  if(durAddEl) durAddEl.onclick = ()=>{ openDurMgmt(); };
+  const durCardEl = document.querySelector('.dur-card');
+  if(durCardEl) durCardEl.onclick = (e)=>{
+    if(e.target.closest('#durAdd')) return; // 按钮已有自己的入口
+    openDurMgmt();
+  };
+  document.querySelectorAll('.day-fold .day-head').forEach(h=>{
+    h.onclick = (e)=>{
+      if(e.target.closest('button')) return;
+      const body = h.nextElementSibling;
+      if(body && body.classList && body.classList.contains('day-body')){
+        const hide = body.classList.toggle('hide');
+        const ar = h.querySelector('.fold-arrow');
+        if(ar) ar.classList.toggle('closed', hide);
+      }
+    };
+  });
   document.querySelectorAll('.task .ck[data-date]').forEach(ck=>{
     ck.onclick = ()=> askDur(ck.dataset.date, ck.dataset.type, ck.dataset.txt);
   });
@@ -2051,14 +2133,15 @@ function tmOpen(){
 function tmClose(){ const p = document.getElementById('tmPanel'); if(p) p.classList.remove('show'); }
 function tmRecord(){
   const mins = Math.max(1, Math.round(timerSt.accMs[timerSt.pendingMode]/60000));
+  const hours = Math.round(mins/60*2)/2; // 分钟 → 小时（保留 0.5h，与任务用时单位一致）
   const d = todayStr();
   const key = 'timer|timer|专注';
   if(!DUR[d]) DUR[d] = {};
-  DUR[d][key] = (+DUR[d][key]||0) + mins;
+  DUR[d][key] = (+DUR[d][key]||0) + hours;
   saveDur();
   const s = document.getElementById('tmSave');
   if(s) s.style.display='none';
-  showToast('已记录 '+mins+' 分钟到今日时长');
+  showToast('已记录 '+mins+' 分钟（'+hours+'h）到今日时长');
   refreshAll();
 }
 document.getElementById('tmFab').onclick = tmOpen;
@@ -2280,8 +2363,8 @@ function refreshProgress(){
     if(tipEl){
       if(tdSt==='done') tipEl.textContent = '今天任务已全部完成，明天继续！';
       else if(tdSt==='none') tipEl.textContent = '今天是休息日，连续天数不断';
-      else if(tdSt==='part') tipEl.textContent = '还差 '+(doneCountOf(tStr).total-doneCountOf(tStr).done)+' 个任务，完成即可 +1';
-      else tipEl.textContent = '今天完成全部任务，连续天数 +1';
+      else if(tdSt==='part') tipEl.textContent = '今天已打卡，连续天数 +1，继续加油！';
+      else tipEl.textContent = '今天完成任意一个任务，连续天数 +1';
     }
   }
 }
@@ -2756,6 +2839,78 @@ document.getElementById('opCancel').onclick = ()=>{ document.getElementById('opM
 document.getElementById('mvOk').onclick = confirmMove;
 document.getElementById('durCancel').onclick = ()=>{ document.getElementById('durMask').style.display='none'; pendingDur=null; };
 document.getElementById('durOk').onclick = confirmDur;
+/* 手动添加学习时长 */
+document.getElementById('exOk').onclick = ()=>{
+  const h = +document.getElementById('exH').value||0;
+  const m = +document.getElementById('exM').value||0;
+  if(h<=0 && m<=0){ showToast('请填写小时或分钟'); return; }
+  const total = Math.min(h + m/60, 24);
+  const d = todayStr();
+  const note = (document.getElementById('exNote').value||'').trim() || '手动添加';
+  const key = 'extra|'+note;
+  if(!DUR[d]) DUR[d] = {};
+  DUR[d][key] = (+DUR[d][key]||0) + total;
+  saveDur();
+  document.getElementById('exH').value='';
+  document.getElementById('exM').value='';
+  document.getElementById('exNote').value='';
+  showToast('已添加 '+fmtDur(total)+'（'+note+'）');
+  renderDurMgmt();
+  refreshAll();
+};
+document.getElementById('exCancel').onclick = ()=>{ document.getElementById('extraMask').style.display='none'; };
+/* 时长记录管理：打开弹窗、渲染当天记录、＋/− 调整 */
+function openDurMgmt(){
+  document.getElementById('extraMask').style.display='flex';
+  renderDurMgmt();
+}
+function renderDurMgmt(){
+  const el = document.getElementById('durMgmtList');
+  if(!el) return;
+  const d = todayStr();
+  const v = DUR[d];
+  const rows = [];
+  if(v && typeof v==='object'){
+    Object.keys(v).forEach(k=>{
+      const h = +v[k]||0;
+      if(h<=0) return;
+      let note = k;
+      if(k.indexOf('|')>=0) note = k.slice(k.indexOf('|')+1);
+      rows.push({k:k, note:note, h:h});
+    });
+  }
+  if(!rows.length){
+    el.innerHTML = '<div style="font-size:12px;color:var(--ink2);padding:8px 2px">今天还没有时长记录，完成任务时打卡填用时，或在下方新增。</div>';
+    return;
+  }
+  el.innerHTML = rows.map(r=>
+    '<div class="dur-mgmt-i">'+
+      '<span class="dm-note">'+escHtml(r.note)+'</span>'+
+      '<span class="dm-h">'+fmtDur(r.h)+'</span>'+
+      '<button class="dm-btn dm-minus" type="button" data-k="'+encodeURIComponent(r.k)+'" title="减少 0.5h">−</button>'+
+      '<button class="dm-btn dm-plus" type="button" data-k="'+encodeURIComponent(r.k)+'" title="增加 0.5h">＋</button>'+
+    '</div>'
+  ).join('');
+  document.querySelectorAll('#durMgmtList .dm-minus').forEach(b=>{ b.onclick=()=>stepDur(b.dataset.k,-0.5); });
+  document.querySelectorAll('#durMgmtList .dm-plus').forEach(b=>{ b.onclick=()=>stepDur(b.dataset.k,0.5); });
+}
+function stepDur(ek, step){
+  const k = decodeURIComponent(ek);
+  const d = todayStr();
+  if(!DUR[d]) DUR[d] = {};
+  const cur = +DUR[d][k]||0;
+  const nv = Math.round((cur+step)*60)/60;
+  if(nv<=0){
+    delete DUR[d][k];
+    showToast('已删除该笔记录');
+  } else {
+    DUR[d][k] = nv;
+    showToast('已调整 '+fmtDur(nv));
+  }
+  saveDur();
+  renderDurMgmt();
+  refreshAll();
+}
 document.getElementById('ckAllCancel').onclick = ()=>{ document.getElementById('ckAllMask').style.display='none'; pendingCkAll=null; };
 document.getElementById('ckAllOk').onclick = confirmCkAll;
 document.querySelectorAll('#durQuick .dur-q').forEach(b=>{
