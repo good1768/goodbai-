@@ -765,24 +765,20 @@ body.narrow .tune{gap:10px!important}
       <button class="set-btn ghost" id="colorReset" style="margin-top:8px">恢复默认颜色</button>
     </div>
 
-    <div class="set-card">
-      <div class="h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>云同步（平板/手机进度互通）</div>
-      <div style="font-size:11.5px;color:var(--ink2);margin-bottom:8px">填好配置后，本页每次操作会自动把进度同步到你的飞书多维表格；其他设备打开同一页面、填同一口令即可拉取，多端进度一致。未配置时不影响正常使用。</div>
-      <label class="set-label">飞书 App ID</label>
-      <input class="set-in" id="syncAppid" type="text" placeholder="cli_xxxxxx" autocomplete="off">
-      <label class="set-label" style="margin-top:10px">飞书 App Secret</label>
-      <input class="set-in" id="syncSecret" type="password" placeholder="申请自建应用后获得" autocomplete="off">
-      <label class="set-label" style="margin-top:10px">同步口令（自设一串字符，多端填同一个）</label>
-      <input class="set-in" id="syncPass" type="text" placeholder="例如 gk72-2027" autocomplete="off">
-      <label class="set-label" style="margin-top:10px">云同步表 ID（已预填，一般无需改）</label>
-      <input class="set-in" id="syncTable" type="text" value="tbl9CWTY6w327fsu">
+        <div class="set-card">
+      <div class="h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/><path d="M15 12l-4 4-2-2"/></svg>云同步（GitHub Gist · 多端进度互通）</div>
+      <div style="font-size:11.5px;color:var(--ink2);margin-bottom:8px">填好 Token 后，每次操作会自动把进度上传到你的 GitHub Gist；换设备时打开同一页面、填同一个 Token，点「从云端拉取」即可恢复进度。未配置时不影响正常使用。</div>
+      <label class="set-label">GitHub Token（只勾 gist 权限）</label>
+      <input class="set-in" id="syncToken" type="password" placeholder="ghp_xxxxxxxx" autocomplete="off">
+      <label class="set-label" style="margin-top:10px">Gist ID（留空则首次同步自动创建）</label>
+      <input class="set-in" id="syncGid" type="text" placeholder="自动创建" autocomplete="off">
       <button class="set-btn" id="syncSave" style="margin-top:14px">保存同步配置</button>
-      <button class="set-btn ghost" id="syncNow" style="margin-top:8px">立即同步</button>
+      <button class="set-btn ghost" id="syncNow" style="margin-top:8px">立即同步（上传）</button>
+      <button class="set-btn ghost" id="syncPullBtn" style="margin-top:8px">从云端拉取</button>
       <div style="font-size:11.5px;color:var(--ink2);margin-top:10px" id="syncStatus">未配置同步</div>
-      <div style="font-size:11px;color:var(--ink2);margin-top:6px;line-height:1.6">怎么拿 App ID/Secret：打开 open.feishu.cn → 创建「企业自建应用」→ 凭证与基础信息里复制 App ID / App Secret → 权限管理里开通「多维表格」读写权限。密钥只存在你自己的设备，请勿把本页面分享给他人。</div>
+      <div style="font-size:11px;color:var(--ink2);margin-top:6px;line-height:1.6">怎么拿 Token：手机浏览器打开 github.com → 点头像 → Settings → 底部 Developer settings → Personal access tokens → Generate new token → 勾选 gist 这一项 → 生成并复制（ghp_ 开头）。Token 只存在你自己的设备，请勿把本页面分享给他人。</div>
     </div>
-
-    <div class="set-card">
+<div class="set-card">
       <div class="h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>数据备份</div>
       <div style="font-size:11.5px;color:var(--ink2);margin-bottom:8px">打卡、移动记录、模考成绩、时政打卡都只存在当前设备浏览器里，建议每周导出一次，换设备或清理缓存前务必先导出。</div>
       <button class="set-btn" id="bkExport">导出备份（下载 .json）</button>
@@ -2385,13 +2381,13 @@ function go(route){
 }
 function refreshAll(){ renderPlanList(); refreshProgress(); renderCalendar(); }
 
-/* ===== 云同步（飞书多维表格当云端仓库） ===== */
-const SYNC_KEY='gk72_sync', SYNC_TS_KEY='gk72_syncts', SYNC_TOKEN_KEY='gk72_synctoken';
-let syncCfg={appid:'',secret:'',pass:'',base:'PcMfb7ztFaZF9FsmAZZcftWUnTh',table:'tbl9CWTY6w327fsu'};
+/* ===== 云同步（GitHub Gist 当云端仓库） ===== */
+const SYNC_KEY='gk72_sync', SYNC_TS_KEY='gk72_syncts';
+let syncCfg={token:'',gid:''};
 let syncTimer=null;
-function loadSyncCfg(){ try{ const v=JSON.parse(localStorage.getItem(SYNC_KEY)||'{}'); if(v&&typeof v==='object'){ syncCfg=Object.assign({appid:'',secret:'',pass:'',base:'PcMfb7ztFaZF9FsmAZZcftWUnTh',table:'tbl9CWTY6w327fsu'}, v); } }catch(e){} }
+function loadSyncCfg(){ try{ const v=JSON.parse(localStorage.getItem(SYNC_KEY)||'{}'); if(v&&typeof v==='object'){ syncCfg=Object.assign({token:'',gid:''}, v); } }catch(e){} }
 function saveSyncCfg(){ localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg)); renderSyncStatus(); }
-function syncReady(){ return !!(syncCfg.appid && syncCfg.secret && syncCfg.pass && syncCfg.base && syncCfg.table); }
+function syncReady(){ return !!syncCfg.token; }
 function fmtSyncTime(ts){
   const d=new Date(ts), now=new Date(), pad=n=>String(n).padStart(2,'0');
   if(d.toDateString()===now.toDateString()) return '今天 '+pad(d.getHours())+':'+pad(d.getMinutes());
@@ -2404,25 +2400,11 @@ function setSyncStatus(t){
 function renderSyncStatus(){
   const el=document.getElementById('syncStatus');
   if(!el) return;
-  if(!syncReady()){ el.textContent='未配置同步（填上方配置并保存后生效）'; return; }
+  if(!syncReady()){ el.textContent='未配置同步（填上方 Token 并保存后生效）'; return; }
   const ts=+localStorage.getItem(SYNC_TS_KEY)||0;
   el.textContent=ts?('上次同步：'+fmtSyncTime(ts)+' · 每次操作后自动上传') : ('已配置，等待首次同步');
-  document.getElementById('syncAppid').value=syncCfg.appid||'';
-  document.getElementById('syncSecret').value=syncCfg.secret||'';
-  document.getElementById('syncPass').value=syncCfg.pass||'';
-  document.getElementById('syncTable').value=syncCfg.table||'';
-}
-function syncGetToken(){
-  let c=null; try{ c=JSON.parse(localStorage.getItem(SYNC_TOKEN_KEY)||'null'); }catch(e){}
-  if(c && c.token && c.exp>Date.now()) return Promise.resolve(c.token);
-  return fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({app_id:syncCfg.appid, app_secret:syncCfg.secret})
-  }).then(r=>r.json()).then(d=>{
-    if(d.code!==0 || !d.tenant_access_token) throw new Error(d.msg||'获取token失败');
-    localStorage.setItem(SYNC_TOKEN_KEY, JSON.stringify({token:d.tenant_access_token, exp:Date.now()+((d.expire||7200)-120)*1000}));
-    return d.tenant_access_token;
-  });
+  document.getElementById('syncToken').value=syncCfg.token||'';
+  document.getElementById('syncGid').value=syncCfg.gid||'';
 }
 function syncSnapshot(){
   const data={};
@@ -2442,68 +2424,57 @@ function syncQueue(){
   if(syncTimer) clearTimeout(syncTimer);
   syncTimer=setTimeout(()=>{ syncTimer=null; syncPush(); }, 3000);
 }
+function gistHeaders(){ return {'Authorization':'Bearer '+syncCfg.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'}; }
 function syncPush(){
   if(!syncReady()) return;
   setSyncStatus('上传中…');
   const ts=Date.now();
-  return syncGetToken().then(token=>{
-    return fetch('https://open.feishu.cn/open-apis/bitable/v1/apps/'+syncCfg.base+'/tables/'+syncCfg.table+'/records',{
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify({fields:{
-        '同步口令': syncCfg.pass,
-        '更新时间': new Date(ts).toISOString(),
-        '设备': (navigator.userAgent||'未知设备').slice(0,60),
-        '数据快照': JSON.stringify(syncSnapshot())
-      }})
-    }).then(r=>r.json()).then(d=>{
-      if(d.code!==0) throw new Error(d.msg||'写入失败');
-      localStorage.setItem(SYNC_TS_KEY, String(ts));
-      setSyncStatus('同步成功 · '+fmtSyncTime(ts));
-    });
+  const content=JSON.stringify({updated:new Date(ts).toISOString(), device:(navigator.userAgent||'未知设备').slice(0,80), data:syncSnapshot()});
+  const doUpdate=()=>fetch('https://api.github.com/gists/'+syncCfg.gid,{method:'PATCH',headers:gistHeaders(),body:JSON.stringify({files:{'gk77_data.json':{content:content}}})}).then(r=>{ if(!r.ok) throw new Error('上传失败 '+r.status); return r.json(); });
+  const doCreate=()=>fetch('https://api.github.com/gists',{method:'POST',headers:gistHeaders(),body:JSON.stringify({description:'2027国考备考页云同步数据',public:false,files:{'gk77_data.json':{content:content}}})}).then(r=>{ if(!r.ok) throw new Error('创建失败 '+r.status); return r.json(); });
+  return (syncCfg.gid?doUpdate():doCreate()).then(g=>{
+    if(!syncCfg.gid){ syncCfg.gid=g.id; saveSyncCfg(); }
+    localStorage.setItem(SYNC_TS_KEY, String(ts));
+    setSyncStatus('同步成功 · '+fmtSyncTime(ts));
   }).catch(e=>{ setSyncStatus('同步失败：'+(e.message||e)); });
 }
 function syncPull(){
   if(!syncReady()) return;
+  if(!syncCfg.gid){ setSyncStatus('还没有云端数据：请先点一次「立即同步（上传）」'); return; }
   setSyncStatus('拉取中…');
-  return syncGetToken().then(token=>{
-    const filter=encodeURIComponent(JSON.stringify({conjunction:'and',conditions:[{field_name:'同步口令',operator:'is',value:[syncCfg.pass]}]}));
-    const sort=encodeURIComponent(JSON.stringify([{field_name:'更新时间',desc:true}]));
-    return fetch('https://open.feishu.cn/open-apis/bitable/v1/apps/'+syncCfg.base+'/tables/'+syncCfg.table+'/records?page_size=1&filter='+filter+'&sort='+sort,{
-      headers:{'Authorization':'Bearer '+token}
-    }).then(r=>r.json()).then(d=>{
-      if(d.code!==0) throw new Error(d.msg||'读取失败');
-      const recs=(d.data&&d.data.items)||[];
-      if(!recs.length){ setSyncStatus('云端暂无数据，等待首次同步'); return; }
-      const f=recs[0].fields||{};
-      if(f['同步口令']!==syncCfg.pass){ setSyncStatus('云端记录口令不符，已忽略'); return; }
-      const cloudTs=Date.parse(f['更新时间']||'');
+  return fetch('https://api.github.com/gists/'+syncCfg.gid,{headers:{'Authorization':'Bearer '+syncCfg.token,'Accept':'application/vnd.github+json'}})
+    .then(r=>{ if(!r.ok) throw new Error('读取失败 '+r.status); return r.json(); })
+    .then(g=>{
+      const f=(g.files&&g.files['gk77_data.json']&&g.files['gk77_data.json'].content)||'';
+      if(!f){ setSyncStatus('云端数据为空'); return; }
+      let p={}; try{ p=JSON.parse(f); }catch(e){ setSyncStatus('云端数据解析失败'); return; }
+      const cloudTs=Date.parse(p.updated||'');
       const localTs=+localStorage.getItem(SYNC_TS_KEY)||0;
       if(cloudTs && cloudTs>localTs){
-        try{ syncRestore(JSON.parse(f['数据快照']||'{}')); }catch(e){}
+        syncRestore(p.data||{});
         localStorage.setItem(SYNC_TS_KEY, String(cloudTs));
         setSyncStatus('已拉取云端数据 · '+fmtSyncTime(cloudTs));
         showToast('已同步云端最新进度');
-        applyTheme(); refreshAll();
-        renderCfgForm(); renderRestList(); renderColorForm(); renderNodesForm(); renderSz();
+        applyTheme(); refreshAll(); renderCfgForm(); renderRestList(); renderColorForm(); renderNodesForm(); renderSz();
       } else {
         setSyncStatus('本地已是最新 · '+fmtSyncTime(localTs||Date.now()));
       }
-    });
-  }).catch(e=>{ setSyncStatus('拉取失败：'+(e.message||e)); });
+    }).catch(e=>{ setSyncStatus('拉取失败：'+(e.message||e)); });
 }
 document.getElementById('syncSave').onclick = ()=>{
-  syncCfg.appid = document.getElementById('syncAppid').value.trim();
-  syncCfg.secret = document.getElementById('syncSecret').value.trim();
-  syncCfg.pass = document.getElementById('syncPass').value.trim();
-  syncCfg.table = document.getElementById('syncTable').value.trim() || syncCfg.table;
-  if(!syncCfg.appid || !syncCfg.secret || !syncCfg.pass){ showToast('请填写 App ID、App Secret 和同步口令'); return; }
+  syncCfg.token = document.getElementById('syncToken').value.trim();
+  syncCfg.gid = document.getElementById('syncGid').value.trim();
+  if(!syncCfg.token){ showToast('请填写 GitHub Token'); return; }
   saveSyncCfg();
   showToast('同步配置已保存');
 };
 document.getElementById('syncNow').onclick = ()=>{
-  if(!syncReady()){ showToast('请先填写并保存同步配置'); return; }
-  setSyncStatus('同步中…');
-  syncPull().then(()=>{ syncPush(); });
+  if(!syncReady()){ showToast('请先填写并保存 Token'); return; }
+  syncPush();
+};
+document.getElementById('syncPullBtn').onclick = ()=>{
+  if(!syncReady()){ showToast('请先填写并保存 Token'); return; }
+  syncPull();
 };
 
 /* ===== 事件 ===== */
