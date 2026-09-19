@@ -298,12 +298,45 @@ body{
 .ss-row:last-child{border-bottom:none}
 .ss-row .sn{flex:1;font-size:12.5px;color:var(--ink);font-weight:700}
 .ss-row input{width:56px;padding:6px 8px;border:1px solid #DDE7E0;border-radius:8px;font-size:13px;text-align:center;background:#FBFDFC}
+.ss-row input[type="number"]{width:64px}
 .ss-row .sp{font-size:11px;color:var(--ink2)}
 
 .el-item .ed{flex:none;width:64px;font-weight:700;color:var(--ink)}
 .el-item .en{flex:none;font-weight:700;color:var(--primary)}
 .el-item .es{flex:1;min-width:0;color:var(--ink2);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .el-item .del{flex:none;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--danger);padding:3px 8px;cursor:pointer}
+.el-item[data-ssdate]{cursor:pointer}
+.el-item[data-ssdate]:active{background:var(--primary-soft)}
+.ss-open{flex:none;font-size:10.5px;color:var(--primary);font-weight:600}
+.ss-hit{flex:none;font-size:10.5px;font-weight:700;color:#8A5A00;background:#FDF3DF;border-radius:6px;padding:2px 6px}
+.ssd-sum{font-size:13px;font-weight:700;color:var(--ink);background:#F6FAF8;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px}
+.ssd-sec{font-size:11px;color:var(--ink2);font-weight:700;margin:2px 0 4px}
+.ssd-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed #EDF2EE;font-size:12.5px}
+.ssd-row:last-child{border-bottom:none}
+.ssd-name{flex:1;min-width:0;font-weight:600;color:var(--ink)}
+.ssd-mid{flex:none;color:var(--ink2);font-size:11.5px;font-variant-numeric:tabular-nums}
+.ssd-time{flex:none;font-weight:700;color:var(--primary);font-size:12px;font-variant-numeric:tabular-nums}
+.ssd-hit{flex:none;font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 6px}
+.ssd-hit.ok{color:#1E7A4C;background:#E4F5EC}
+.ssd-hit.ex{color:#8A5A00;background:#FCEFCB}
+.ssd-hit.no{color:var(--ink2);background:#F1F4F2}
+.ss-chip{border:1px solid var(--line);background:#fff;border-radius:14px;font-size:11px;color:var(--ink2);padding:4px 10px;cursor:pointer;transition:background .15s}
+.ss-chip.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700}
+.ssb-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px}
+.ssb-name{flex:none;width:96px;color:var(--ink2);font-weight:600}
+.ssb-bar{flex:1;height:12px;background:#F1F4F2;border-radius:6px;overflow:hidden}
+.ssb-bar i{display:block;height:100%;background:var(--primary);border-radius:6px}
+.ssb-num{flex:none;width:36px;text-align:right;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.ssb-avg{flex:none;width:50px;font-size:10.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.ssb-empty{font-size:11px;color:#B5C0B8}
+/* 可折叠卡片 */
+.fold-card .h{cursor:pointer;user-select:none}
+.fold-card .h:active{opacity:.75}
+.fold-arrow{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;font-size:11px;color:var(--ink2);transition:transform .2s}
+.fold-card.collapsed .fold-arrow{transform:rotate(-90deg)}
+.fold-card.collapsed .fold-body{display:none}
+.fold-card .fold-body{animation:foldIn .18s ease}
+@keyframes foldIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .wk-summary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .wk-summary .ws{flex:1;min-width:72px;background:#F6FAF8;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center;cursor:pointer;transition:background .15s}
 .wk-summary .ws:active{background:var(--primary-soft)}
@@ -740,28 +773,39 @@ body.narrow .tune{gap:10px!important}
       <div id="elChartRate" class="el-chart"></div>
     </div>
 
-    <div class="set-card">
-      <div class="h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>速算练习记录</div>
-      <div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">每天 3 页速算题本：记下用时和对题数，看时间变快、正确率变高。</div>
-      <label class="set-label">日期</label>
-      <input type="date" class="set-in" id="ssDate">
-      <div style="font-size:11px;color:var(--ink2);margin:0 0 6px;font-weight:700">各题型对题数 / 总题数 / 用时（分）</div>
-      <div id="ssItems"></div>
-      <div id="ssTotalTime" style="font-size:13px;font-weight:700;color:var(--ink);margin-top:10px;padding:8px 12px;background:#F0F7F3;border-radius:8px">总用时：--</div>
-      <button class="set-btn" id="ssAdd" style="margin-top:14px">保存速算记录</button>
+    <div class="set-card fold-card" data-fold="ssForm">
+      <div class="h"><span class="fold-arrow">▸</span><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>速算练习记录</div>
+      <div class="fold-body">
+        <div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">每天 3 页速算题本：记下用时和对题数，看时间变快、正确率变高。</div>
+        <label class="set-label">日期</label>
+        <input type="date" class="set-in" id="ssDate">
+        <div style="font-size:11px;color:var(--ink2);margin:0 0 6px;font-weight:700">各题型对题数 / 总题数 / 用时（分:秒，秒可带小数）</div>
+        <div id="ssItems"></div>
+        <div id="ssTotalTime" style="font-size:13px;font-weight:700;color:var(--ink);margin-top:10px;padding:8px 12px;background:#F0F7F3;border-radius:8px">总用时：--</div>
+        <button class="set-btn" id="ssAdd" style="margin-top:14px">保存速算记录</button>
+      </div>
     </div>
 
-    <div class="set-card">
-      <div class="h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3-4 3 2 4-6"/></svg>速算进步曲线</div>
-      <div style="font-size:11px;color:var(--ink2);margin-bottom:6px">用时（分钟，越低越好）</div>
-      <div id="ssChartTime" class="el-chart"></div>
-      <div style="font-size:11px;color:var(--ink2);margin-top:12px">正确率（%，越高越好）</div>
-      <div id="ssChartRate" class="el-chart"></div>
+    <div class="set-card fold-card" data-fold="ssChart">
+      <div class="h"><span class="fold-arrow">▸</span><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3-4 3 2 4-6"/></svg>速算进步曲线</div>
+      <div class="fold-body">
+        <div style="font-size:11px;color:var(--ink2);margin-bottom:6px">用时（分:秒，越短越好）</div>
+        <div id="ssChartTime" class="el-chart"></div>
+        <div style="font-size:11px;color:var(--ink2);margin-top:12px">正确率（%，越高越好）</div>
+        <div id="ssChartRate" class="el-chart"></div>
+        <div style="font-size:11px;color:var(--ink2);margin-top:12px">各题型正确率对比（点标签可只看单个题型）</div>
+        <div id="ssChips" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0"></div>
+        <div id="ssChartCat" class="el-chart"></div>
+        <div style="font-size:11px;color:var(--ink2);margin-top:12px">各题型用时对比（越短越好）</div>
+        <div id="ssChartCatTime" class="el-chart"></div>
+      </div>
     </div>
 
-    <div class="set-card">
-      <div class="h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>速算记录</div>
-      <div id="ssList"></div>
+    <div class="set-card fold-card" data-fold="ssList">
+      <div class="h"><span class="fold-arrow">▸</span><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>速算记录</div>
+      <div class="fold-body">
+        <div id="ssList"></div>
+      </div>
     </div>
   </section>
 
@@ -1194,6 +1238,18 @@ body.narrow .tune{gap:10px!important}
   </div>
 </div>
 
+<div class="modal-mask" id="ssDetailMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="ssDetailTitle">速算记录明细</div>
+    <div class="modal-body">
+      <div id="ssDetailBody"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="ssDetailClose">完成</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== 上上签 · 每日一签（每天首次打开弹出） ===== -->
 <div class="qian-mask" id="qianMask">
   <div class="qian-scene">
@@ -1267,12 +1323,36 @@ let SS={}; try{ SS=JSON.parse(localStorage.getItem(SS_KEY)||'{}'); }catch(e){}
 function saveSuan(){ localStorage.setItem(SS_KEY, JSON.stringify(SS)); syncQueue(); }
 const SS_ITEMS=[
   {key:'a', name:'两位数×一位数', t:40},
-  {key:'b', name:'两位数加减', t:20},
-  {key:'c', name:'三位数加减', t:20},
+  {key:'b', name:'两位数加减', t:40},
+  {key:'c', name:'三位数加减', t:40},
   {key:'d', name:'多位÷两位', t:20},
   {key:'e', name:'多位÷三位', t:20},
   {key:'f', name:'四位数除法选择', t:20}
 ];
+/* 速算达标目标（秒）：达标即在保存时提示并标记（四位数除法分优秀/及格两档） */
+const SS_GOALS={a:90, b:120, c:180, d:60, e:240, f:{ex:240, pass:360}};
+function suanGoal(key,u){
+  if(!(u>0)) return false;
+  const g=SS_GOALS[key];
+  if(typeof g==='number') return u<=g ? true : false;
+  if(u<=g.ex) return '优秀';
+  if(u<=g.pass) return '及格';
+  return false;
+}
+function suanGoalText(key,u){
+  const g=suanGoal(key,u);
+  return g===true?'达标':(g?('达标·'+g):false);
+}
+function clearSuanForm(){
+  SS_ITEMS.forEach(it=>{
+    const w=document.getElementById('ssw_'+it.key), m=document.getElementById('ssm_'+it.key), s=document.getElementById('sss_'+it.key), t=document.getElementById('sst_'+it.key);
+    if(w) w.value='';
+    if(m) m.value='';
+    if(s) s.value='';
+    if(t) t.value=it.t;
+  });
+  suanSumTime();
+}
 function suanStat(e){
   let total=0, right=0, time=0;
   SS_ITEMS.forEach(it=>{
@@ -1286,20 +1366,27 @@ function suanStat(e){
   return {total, right, time};
 }
 function fmtMMSS(t){
-  t=Math.round(t||0);
-  const m=Math.floor(t/60), s=t%60;
-  if(m&&s) return m+'分'+s+'秒';
+  t = +(t||0);
+  const m=Math.floor(t/60), s=t-m*60;
+  const sTxt = Number.isInteger(s) ? String(s) : (Math.round(s*10)/10)+'';
+  if(m&&s) return m+'分'+sTxt+'秒';
   if(m) return m+'分';
-  return s+'秒';
+  return sTxt+'秒';
+}
+function fmtClock(t){
+  t = +(t||0);
+  const m=Math.floor(t/60), s=t-m*60;
+  const sTxt = Number.isInteger(s) ? String(s) : (Math.round(s*10)/10)+'';
+  return m+':'+(s<10?'0':'')+sTxt;
 }
 function suanSumTime(){
   let s=0;
-  SS_ITEMS.forEach(it=>{ s+=(parseInt(document.getElementById('ssm_'+it.key).value)||0)*60+(parseInt(document.getElementById('sss_'+it.key).value)||0); });
+  SS_ITEMS.forEach(it=>{ s+=(parseInt(document.getElementById('ssm_'+it.key).value)||0)*60+(parseFloat(document.getElementById('sss_'+it.key).value)||0); });
   document.getElementById('ssTotalTime').innerHTML='总用时：'+fmtMMSS(s);
 }
 function suanSum(){
   let s=0;
-  SS_ITEMS.forEach(it=>{ s+=(parseInt(document.getElementById('ssm_'+it.key).value)||0)*60+(parseInt(document.getElementById('sss_'+it.key).value)||0); });
+  SS_ITEMS.forEach(it=>{ s+=(parseInt(document.getElementById('ssm_'+it.key).value)||0)*60+(parseFloat(document.getElementById('sss_'+it.key).value)||0); });
   return s;
 }
 function renderSuan(){
@@ -1310,7 +1397,7 @@ function renderSuan(){
   const itemsEl=document.getElementById('ssItems');
   if(itemsEl && !itemsEl.innerHTML){
     itemsEl.innerHTML=SS_ITEMS.map(it=>
-      '<div class="ss-row"><span class="sn">'+it.name+'</span><input type="number" min="0" id="ssw_'+it.key+'" placeholder="对"><span class="sp">/</span><input type="number" min="0" id="sst_'+it.key+'" value="'+it.t+'"><input type="number" min="0" max="999" id="ssm_'+it.key+'" placeholder="分" style="width:46px"><span class="sp">:</span><input type="number" min="0" max="59" id="sss_'+it.key+'" placeholder="秒" style="width:46px"></div>'
+      '<div class="ss-row"><span class="sn">'+it.name+'</span><input type="number" min="0" id="ssw_'+it.key+'" placeholder="对"><span class="sp">/</span><input type="number" min="0" id="sst_'+it.key+'" value="'+it.t+'"><input type="number" min="0" step="0.1" id="ssm_'+it.key+'" placeholder="分" style="width:52px"><span class="sp">:</span><input type="number" min="0" max="60" step="0.1" id="sss_'+it.key+'" placeholder="秒" style="width:52px"></div>'
     ).join('');
     SS_ITEMS.forEach(it=>{ document.getElementById('ssm_'+it.key).addEventListener('input', suanSumTime); document.getElementById('sss_'+it.key).addEventListener('input', suanSumTime); });
     suanSumTime();
@@ -1324,8 +1411,15 @@ function renderSuan(){
     list.innerHTML=dates.slice().reverse().map(d=>{
       const e=SS[d]; const {total,right,time}=suanStat(e);
       const rate=total? Math.round(right/total*100):0;
-      return '<div class="el-item"><span class="ed">'+d.slice(5)+'</span><span class="en">'+(time? fmtMMSS(time):'')+'</span><span class="es">正确率'+rate+'%（对'+right+'/'+total+'）</span><button class="del" data-ssdel="'+d+'">删除</button></div>';
+      let hitN=0;
+      SS_ITEMS.forEach(it=>{ const v=e.items&&e.items[it.key]; if(v && suanGoal(it.key, v.u||0)) hitN++; });
+      return '<div class="el-item" data-ssdate="'+d+'"><span class="ed">'+d.slice(5)+'</span><span class="en">'+(time? fmtMMSS(time):'')+'</span><span class="es">正确率'+rate+'%（对'+right+'/'+total+'）</span>'+(hitN?'<span class="ss-hit">达标'+hitN+'项</span>':'')+'<span class="ss-open">明细 ›</span><button class="del" data-ssdel="'+d+'">删除</button></div>';
     }).join('');
+    list.onclick=e=>{
+      if(e.target.closest('[data-ssdel]')) return;
+      const row=e.target.closest('.el-item[data-ssdate]');
+      if(row) openSsDetail(row.dataset.ssdate);
+    };
     list.querySelectorAll('[data-ssdel]').forEach(b=>{
       b.onclick=()=>{ delete SS[b.dataset.ssdel]; saveSuan(); renderSuan(); showToast('已删除该条速算记录'); };
     });
@@ -1339,29 +1433,133 @@ function renderSuan(){
     rEl.innerHTML='';
   } else {
     const labels=sorted.map(d=>d.slice(5));
-    tEl.innerHTML=examLogSVG(labels,[{name:'用时(分)',color:'#3B82C4',data:sorted.map(d=>{const t=suanStat(SS[d]).time; return t? Math.round(t/60*10)/10:null;})}]);
-    rEl.innerHTML=examLogSVG(labels,[{name:'正确率',color:'#2F9E63',data:sorted.map(d=>{const s=suanStat(SS[d]); return s.total?Math.round(s.right/s.total*100):null;})}]);
+    tEl.innerHTML=examLogSVG(labels,[{name:'用时(分:秒)',color:'#3B82C4',data:sorted.map(d=>{const t=suanStat(SS[d]).time; return t? Math.round(t*10)/10:null;})}],{h:90,showVal:true,fmt:v=>fmtClock(v)});
+    rEl.innerHTML=examLogSVG(labels,[{name:'正确率',color:'#2F9E63',data:sorted.map(d=>{const s=suanStat(SS[d]); return s.total?Math.round(s.right/s.total*100):null;})}],{h:90,showVal:true});
+  }
+  // 各题型正确率/用时（全部=条形概览；单个题型=正确率+用时两条折线，看自己前后变化）
+  const chipsEl=document.getElementById('ssChips');
+  const catEl=document.getElementById('ssChartCat');
+  const timeCatEl=document.getElementById('ssChartCatTime');
+  if(chipsEl && catEl && timeCatEl){
+    const catSel=window._ssCatSel || 'all';
+    const CAT_COLORS=['#2F9E63','#3B82C4','#E07B39','#8E6BC0','#C2574B','#3AA6B9'];
+    chipsEl.innerHTML='<button class="ss-chip'+(catSel==='all'?' on':'')+'" data-cat="all">全部</button>'+SS_ITEMS.map((it,i)=>'<button class="ss-chip'+(catSel===it.key?' on':'')+'" data-cat="'+it.key+'">'+it.name+'</button>').join('');
+    chipsEl.querySelectorAll('[data-cat]').forEach(b=>{ b.onclick=()=>{ window._ssCatSel=b.dataset.cat; renderSuan(); }; });
+    // 收集每个题型按日期的正确率与用时
+    const col=(key,fn)=>sorted.map(d=>{ const e=SS[d], v=e&&e.items&&e.items[key]; if(!v) return null; return fn(v); });
+    const rateOf=v=>{ if(!(v.t>0)) return null; const r=v.r!=null?v.r:(v.t-(v.w||0)); return Math.round(r/v.t*100); };
+    const timeOf=v=>{ if(!(v.u>0)) return null; return Math.round(v.u*10)/10; };
+    if(!sorted.length){
+      catEl.innerHTML='<div style="font-size:12px;color:var(--ink2);padding:14px 0;text-align:center">记录后自动生成各题型对比</div>';
+      timeCatEl.innerHTML='';
+    } else if(catSel==='all'){
+      // 正确率条形概览
+      let bars='';
+      SS_ITEMS.forEach(it=>{
+        const vals=col(it.key,rateOf).filter(x=>x!=null);
+        if(!vals.length){ bars+='<div class="ssb-row"><span class="ssb-name">'+it.name+'</span><span class="ssb-empty">暂无记录</span></div>'; return; }
+        const last=vals[vals.length-1];
+        const avg=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+        bars+='<div class="ssb-row"><span class="ssb-name">'+it.name+'</span><div class="ssb-bar"><i style="width:'+Math.max(last,4)+'%"></i></div><span class="ssb-num">'+last+'%</span><span class="ssb-avg">均'+avg+'%</span></div>';
+      });
+      catEl.innerHTML='<div style="font-size:10.5px;color:var(--ink2);margin-bottom:4px">条形=最近一次正确率，右侧附历史平均</div>'+bars;
+      // 用时条形概览（保持题型顺序）
+      const tdata=SS_ITEMS.map(it=>{
+        const us=col(it.key,v=>v.u>0?v.u:null).filter(x=>x!=null);
+        return {key:it.key, name:it.name, last:us.length?us[us.length-1]:null, avg:us.length?Math.round(us.reduce((a,b)=>a+b,0)/us.length):null};
+      });
+      const maxU=Math.max.apply(null, tdata.map(x=>x.last||0).concat([1]));
+      let tb='';
+      tdata.forEach(x=>{
+        if(x.last==null){ tb+='<div class="ssb-row"><span class="ssb-name">'+x.name+'</span><span class="ssb-empty">暂无记录</span></div>'; return; }
+        const g=suanGoalText(x.key,x.last);
+        const cls=g===true?'ok':(g?'ex':'no');
+        tb+='<div class="ssb-row"><span class="ssb-name">'+x.name+'</span><div class="ssb-bar"><i style="width:'+Math.max(x.last/maxU*100,4)+'%"></i></div><span class="ssb-num">'+fmtClock(x.last)+'</span><span class="ssb-avg">均'+fmtClock(x.avg)+'</span><span class="ssd-hit '+cls+'">'+(g||'未达标')+'</span></div>';
+      });
+      timeCatEl.innerHTML='<div style="font-size:10.5px;color:var(--ink2);margin-bottom:4px">条形=最近一次用时，右侧附平均用时与达标状态；点上方题型标签看用时变化折线</div>'+tb;
+    } else {
+      // 单个题型：正确率折线 + 用时折线（自己前后的变化）
+      const labels2=sorted.map(d=>d.slice(5));
+      const it=SS_ITEMS.find(x=>x.key===catSel);
+      const ci=SS_ITEMS.findIndex(x=>x.key===catSel);
+      if(it){
+        catEl.innerHTML=examLogSVG(labels2,[{name:it.name+'正确率',color:CAT_COLORS[ci],data:col(it.key,rateOf)}],{h:90,showVal:true});
+        timeCatEl.innerHTML=examLogSVG(labels2,[{name:it.name+'用时(分:秒)',color:'#E07B39',data:col(it.key,timeOf)}],{h:90,showVal:true,fmt:v=>fmtClock(v)});
+      } else { catEl.innerHTML=''; timeCatEl.innerHTML=''; }
+    }
   }
 }
 document.getElementById('ssAdd').onclick=()=>{
   const d=document.getElementById('ssDate').value;
   if(!d || d<'2026-09-17' || d>'2026-11-30'){ showToast('请选择计划区间内的日期'); return; }
-  const items={}; let has=false, hasU=false;
+  const items={}; let has=false, hasU=false; const hits=[];
   SS_ITEMS.forEach(it=>{
     const r=+document.getElementById('ssw_'+it.key).value||0;
     const t=+document.getElementById('sst_'+it.key).value||0;
-    const u=((parseInt(document.getElementById('ssm_'+it.key).value)||0)*60+(parseInt(document.getElementById('sss_'+it.key).value)||0));
+    const u=((parseInt(document.getElementById('ssm_'+it.key).value)||0)*60+(parseFloat(document.getElementById('sss_'+it.key).value)||0));
     if(t>0) has=true;
     if(u>0) hasU=true;
     items[it.key]={r,t,u};
+    if(u>0 && t>0){ const g=suanGoalText(it.key,u); if(g) hits.push(it.name+'（'+g+'）'); }
   });
   if(!has){ showToast('请填写至少一个题型的总题数'); return; }
   if(!hasU){ showToast('请填写至少一个题型的用时'); return; }
   const time=suanSum();
   SS[d]={time:time, items:items};
-  saveSuan(); renderSuan();
-  showToast('已保存 '+d.slice(5)+' 速算记录');
+  saveSuan(); renderSuan(); clearSuanForm();
+  showToast('已保存 '+d.slice(5)+' 速算记录'+(hits.length? '，达标：'+hits.join('、') : '，本次暂未达标，继续加油'));
 };
+/* 速算记录明细弹窗 */
+function openSsDetail(d){
+  const e=SS[d];
+  if(!e) return;
+  const {total,right,time}=suanStat(e);
+  const rate=total? Math.round(right/total*100):0;
+  document.getElementById('ssDetailTitle').textContent = d.slice(5)+' 速算明细';
+  let html='<div class="ssd-sum">总用时 '+fmtMMSS(time)+' · 对 '+right+'/'+total+' · 正确率 '+rate+'%</div>';
+  let hasRow=false;
+  SS_ITEMS.forEach(it=>{
+    const v=e.items&&e.items[it.key];
+    if(!v || !(v.t>0)) return;
+    hasRow=true;
+    const r=v.r!=null ? v.r : (v.t-(v.w||0));
+    const r2=v.t ? Math.round(r/v.t*100) : 0;
+    const g=suanGoal(it.key, v.u||0);
+    const gt=g===true?'达标':(g?('达标·'+g):'未达标');
+    const cls=g===true?'ok':(g? 'ex':'no');
+    html+='<div class="ssd-row"><span class="ssd-name">'+it.name+'</span><span class="ssd-mid">对 '+r+'/'+v.t+' · '+r2+'%</span><span class="ssd-time">'+(v.u? fmtMMSS(v.u):'')+'</span><span class="ssd-hit '+cls+'">'+gt+'</span></div>';
+  });
+  html+='<div style="font-size:10.5px;color:var(--ink2);margin-top:8px">达标线：两位数×一位数≤1.5分 · 两位数加减≤2分 · 三位数加减≤3分 · 多位÷两位≤1分 · 多位÷三位≤4分 · 四位数除法优秀≤4分/及格≤6分</div>';
+  document.getElementById('ssDetailBody').innerHTML = hasRow ? html : '<div style="font-size:12px;color:var(--ink2);padding:4px 0">这条记录没有明细数据</div>';
+  document.getElementById('ssDetailMask').style.display='flex';
+}
+document.getElementById('ssDetailClose').onclick = ()=>{ document.getElementById('ssDetailMask').style.display='none'; };
+/* 切换日期时清空上次输入，避免在旧记录上改 */
+const ssDateEl=document.getElementById('ssDate');
+if(ssDateEl) ssDateEl.addEventListener('change', clearSuanForm);
+/* 速算卡片折叠（表单、曲线默认收起，列表默认展开） */
+const SSFOLD_KEY='gk72_ssfold';
+let ssFold={}; try{ ssFold=JSON.parse(localStorage.getItem(SSFOLD_KEY)||'{}'); }catch(e){}
+ssFold=Object.assign({ssForm:true, ssChart:false, ssList:false}, ssFold);
+ssFold.ssForm=true; ssFold.ssChart=true; // 本版起：记录表单与进步曲线都默认收起
+function applySsFold(){
+  document.querySelectorAll('.fold-card[data-fold]').forEach(card=>{
+    const k=card.dataset.fold;
+    card.classList.toggle('collapsed', !!ssFold[k]);
+  });
+}
+function bindSsFold(){
+  document.querySelectorAll('.fold-card[data-fold]').forEach(card=>{
+    const h=card.querySelector('.h');
+    if(h) h.onclick=()=>{
+      const k=card.dataset.fold;
+      ssFold[k]=!ssFold[k];
+      localStorage.setItem(SSFOLD_KEY, JSON.stringify(ssFold));
+      card.classList.toggle('collapsed', ssFold[k]);
+    };
+  });
+}
+applySsFold(); bindSsFold();
 
 /* 每日实际学习时长（按任务记录，自动累加；旧格式 {date:总时长} 兼容） */
 let DUR = {}; try{ DUR = JSON.parse(localStorage.getItem(DUR_KEY)||'{}'); }catch(e){}
@@ -1664,23 +1862,42 @@ document.addEventListener('click', e=>{
     openCatColor(cat.textContent.trim());
   }
 }, true);
-function examLogSVG(labels, series){
+function examLogSVG(labels, series, o){
+  o = o || {};
   // labels: ['10-25',...]; series: [{name,color,data:[...]}] 数据按 labels 对齐，null 跳过
-  const W=300, H=150, padL=28, padR=10, padT=12, padB=22;
+  // o.h 图高（默认150）；o.showVal 是否在每个点标注数值；o.axisMin/o.axisMax/o.step 固定轴范围与均匀刻度（缺省时自动贴合数据+整数均匀刻度）
+  const W=300, H=o.h||150, padL=28, padR=10, padT=12, padB=22;
   const iw=W-padL-padR, ih=H-padT-padB;
-  let min=Infinity, max=-Infinity;
-  series.forEach(s=>s.data.forEach(v=>{ if(v!=null && v!==undefined){ min=Math.min(min,v); max=Math.max(max,v); } }));
-  if(!isFinite(min) || min===max){ min=0; max=100; }
+  function niceStep(x){
+    if(!(x>0)) return 1;
+    const p=Math.pow(10, Math.floor(Math.log10(x)));
+    const n=x/p;
+    return (n<=1?1:n<=2?2:n<=5?5:10)*p;
+  }
+  let min, max, step=o.step;
+  if(o.axisMin!=null && o.axisMax!=null){ min=o.axisMin; max=o.axisMax; }
+  else {
+    min=Infinity; max=-Infinity;
+    series.forEach(s=>s.data.forEach(v=>{ if(v!=null && v!==undefined){ min=Math.min(min,v); max=Math.max(max,v); } }));
+    if(!isFinite(min)){ min=0; max=100; }
+    if(min===max){ min-=5; max+=5; }
+    if(!step) step=niceStep((max-min)/4);
+    min=Math.floor(min/step)*step;
+    max=Math.ceil(max/step)*step;
+    if(max-min < step*2) max=min+step*2;
+  }
   const span=max-min || 1;
   const Y = v => padT + ih - (v-min)/span*ih;
   const X = i => labels.length===1 ? padL+iw/2 : padL + i/(labels.length-1)*iw;
-  const g=[]; // 水平网格 4 条
-  for(let k=0;k<=4;k++){
-    const v = min + span*k/4;
+  const g=[]; // 水平网格
+  const tickVals=[];
+  if(step!=null){ for(let v=min; v<=max+1e-9; v+=step) tickVals.push(Math.round(v*100)/100); }
+  else { for(let k=0;k<=4;k++) tickVals.push(min+span*k/4); }
+  tickVals.forEach(v=>{
     const y = Y(v);
     g.push('<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#EDF2EE" stroke-width="1"/>');
-    g.push('<text x="'+(padL-4)+'" y="'+(y+3)+'" font-size="8" fill="#9AA8A0" text-anchor="end">'+Math.round(v)+'</text>');
-  }
+    g.push('<text x="'+(padL-4)+'" y="'+(y+3)+'" font-size="8" fill="#9AA8A0" text-anchor="end">'+(o.fmt? o.fmt(v) : Math.round(v))+'</text>');
+  });
   labels.forEach((lb,i)=>{
     g.push('<text x="'+X(i)+'" y="'+(H-6)+'" font-size="8" fill="#9AA8A0" text-anchor="middle">'+lb+'</text>');
   });
@@ -1689,7 +1906,15 @@ function examLogSVG(labels, series){
     let d='';
     s.data.forEach((v,i)=>{ if(v==null) return; const x=X(i), y=Y(v); d += (d?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); });
     if(d){ paths.push('<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'); }
-    s.data.forEach((v,i)=>{ if(v==null) return; dots.push('<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="2.6" fill="'+s.color+'"/>'); });
+    s.data.forEach((v,i)=>{
+      if(v==null) return;
+      const x=X(i).toFixed(1), y=Y(v).toFixed(1);
+      dots.push('<circle cx="'+x+'" cy="'+y+'" r="2.6" fill="'+s.color+'"/>');
+      if(o.showVal){
+        const vTxt = o.fmt ? o.fmt(v) : (Number.isInteger(v) ? String(v) : String(Math.round(v*10)/10));
+        dots.push('<text x="'+x+'" y="'+(parseFloat(y)+10)+'" font-size="6.5" fill="#C0392B" text-anchor="middle">'+vTxt+'</text>');
+      }
+    });
     leg.push('<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:10px;color:var(--ink2)"><i style="width:10px;height:3px;border-radius:2px;background:'+s.color+';display:inline-block"></i>'+s.name+'</span>');
   });
   return '<div style="display:flex;flex-wrap:wrap;margin-bottom:6px">'+leg.join('')+'</div><svg viewBox="0 0 '+W+' '+H+'"><rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none"/>'+g.join('')+paths.join('')+dots.join('')+'</svg>';
@@ -2009,7 +2234,7 @@ document.getElementById('weekSummary').addEventListener('click', e=>{
 [
   ['apMask','apCancel'],['mvMask','mvCancel'],['edMask','edCancel'],['delMask','delCancel'],
   ['opMask','opCancel'],['durMask','durCancel'],['extraMask','exCancel'],['durHistMask','durHistClose'],
-  ['wkDetailMask','wkDetailClose'],['catDetailMask','catDetailClose'],['catColorMask','catColorClose'],['mottoMask','mottoCancel'],['ckAllMask','ckAllCancel']
+  ['wkDetailMask','wkDetailClose'],['catDetailMask','catDetailClose'],['catColorMask','catColorClose'],['mottoMask','mottoCancel'],['ckAllMask','ckAllCancel'],['ssDetailMask','ssDetailClose']
 ].forEach(p=>{
   const m = document.getElementById(p[0]);
   const b = document.getElementById(p[1]);
