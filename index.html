@@ -1014,8 +1014,15 @@ body.narrow .tune{gap:10px!important}
   </div>
   <div class="tm-save" id="tmSave" style="display:none">
     <div class="t">本次专注 <b id="tmSaveMins">0</b> 分钟</div>
+    <div style="margin:8px 0">
+      <label style="font-size:12px;color:var(--ink2);display:block;margin-bottom:4px">这次做了什么？</label>
+      <select id="tmRecSel" style="width:100%;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:13px">
+        <option value="">其他/专注练习</option>
+      </select>
+      <input type="text" id="tmRecCustom" placeholder="自己填做了什么" style="width:100%;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:13px;margin-top:6px;display:none">
+    </div>
     <div class="b">
-      <button id="tmSaveOk">记录到今日时长</button>
+      <button id="tmSaveOk">确认记录</button>
       <button id="tmSaveNo">放弃</button>
     </div>
   </div>
@@ -1028,7 +1035,7 @@ body.narrow .tune{gap:10px!important}
     <div class="modal-title">增加计划</div>
     <div class="modal-body">
       <label class="set-label">日期</label>
-      <input type="date" class="modal-date" id="apDate" min="2026-09-17" max="2026-11-30">
+      <input type="date" class="modal-date" id="apDate" min="2026-09-17" max="2026-12-31">
       <label class="set-label">科目</label>
       <div class="ap-cats" id="apCats">
         <span class="ap-cat on" data-cat="资料分析">资料分析</span>
@@ -1060,7 +1067,7 @@ body.narrow .tune{gap:10px!important}
     <div class="modal-title">休息设置</div>
     <div class="modal-body">
       <label class="set-label">选择日期</label>
-      <input type="date" class="modal-date" id="restDate2" min="2026-09-17" max="2026-11-29">
+      <input type="date" class="modal-date" id="restDate2" min="2026-09-17" max="2026-12-31">
       <div id="restList2" style="margin-top:12px"></div>
     </div>
     <div class="modal-btns">
@@ -1100,7 +1107,7 @@ body.narrow .tune{gap:10px!important}
     <div class="modal-title">计划移动</div>
     <div class="modal-body">
       <label class="set-label">从哪天移</label>
-      <input type="date" class="modal-date" id="shiftDate" min="2026-09-17" max="2026-11-29">
+      <input type="date" class="modal-date" id="shiftDate" min="2026-09-17" max="2026-12-31">
       <div id="shiftTaskWrap" style="margin-top:12px;display:none">
         <div style="font-size:12px;color:var(--ink2);margin-bottom:6px">勾选要移动的任务（可以前移也可以后移）：</div>
         <div id="shiftTaskList" style="max-height:180px;overflow-y:auto;margin-bottom:8px"></div>
@@ -1109,7 +1116,7 @@ body.narrow .tune{gap:10px!important}
           <button class="set-btn ghost" id="shiftSelNone" style="flex:1">全不选</button>
         </div>
         <label class="set-label">移到哪一天</label>
-        <input type="date" class="modal-date" id="shiftTargetDate" min="2026-09-17" max="2026-11-29">
+        <input type="date" class="modal-date" id="shiftTargetDate" min="2026-09-17" max="2026-12-31">
       </div>
     </div>
     <div class="modal-btns">
@@ -1129,7 +1136,7 @@ body.narrow .tune{gap:10px!important}
     <div class="modal-body">
       <div class="modal-task" id="mvTask"></div>
       <div class="modal-hint" id="mvHint"></div>
-      <input type="date" class="modal-date" id="mvDate" min="2026-09-17" max="2026-11-29">
+      <input type="date" class="modal-date" id="mvDate" min="2026-09-17" max="2026-12-31">
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" id="mvCancel">取消</button>
@@ -1429,14 +1436,14 @@ function baseDateOf(d){
 }
 /* 整体后移一天：从 from 日起所有任务后移一天 */
 function shiftBackward(from){
-  if(from < '2026-09-17' || from >= '2026-11-30'){ showToast('不能在这个日期操作'); return; }
+  if(from < '2026-09-17' || from >= '2026-12-31'){ showToast('不能在这个日期操作'); return; }
   SHIFT.push({from:from, days:1});
   saveShift();
   refreshAll();
 }
 /* 整体前移一天：从 from 日起所有任务前移一天 */
 function shiftForward(from){
-  if(from < '2026-09-17' || from >= '2026-11-30'){ showToast('不能在这个日期操作'); return; }
+  if(from < '2026-09-17' || from >= '2026-12-31'){ showToast('不能在这个日期操作'); return; }
   SHIFT.push({from:from, days:-1});
   saveShift();
   refreshAll();
@@ -1625,7 +1632,7 @@ function renderSuan(){
 }
 document.getElementById('ssAdd').onclick=()=>{
   const d=document.getElementById('ssDate').value;
-  if(!d || d<'2026-09-17' || d>'2026-11-30'){ showToast('请选择计划区间内的日期'); return; }
+  if(!d || d<'2026-09-17' || d>'2026-12-31'){ showToast('请选择计划区间内的日期'); return; }
   const items={}; let has=false, hasU=false; const hits=[];
   SS_ITEMS.forEach(it=>{
     const r=+document.getElementById('ssw_'+it.key).value||0;
@@ -2734,6 +2741,10 @@ function fmtDate(d){
 function todayStr(){ return fmtDate(new Date()); }
 function parseDate(s){ const p=s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
 function dayTasks(d){
+  // 固定考试日：不管怎么顺延，CFG.exam 那天永远是考试日
+  if(d === CFG.exam){
+    return [{date:d, week:WEEKS[parseDate(d).getDay()], type:'考试日', stage:'考试日', hours:0, done:'未开始', note:'', xc:'', sl:''}];
+  }
   // 全部后移的休息日：显示空卡片，标注休息日
   const op = RESTOPS[d];
   if(op && op.type === 'shift'){
@@ -2833,7 +2844,7 @@ function stageChip(stage){
 const TIP_DAYS = {
   '2026-10-21': '【数量保底策略】零基础目标做对 5~8 题即可：不恋战、不纠结，把时间留给资料分析和判断推理这两个提分主力。'
 };
-function dayCardHTML(date, fold, delay){
+function dayCardHTML(date, fold, delay, over){
   const rows = dayTasks(date);
   if(rows.length===0) return '';
   const r = rows[0];
@@ -2844,7 +2855,10 @@ function dayCardHTML(date, fold, delay){
   const slTasks = splitTasks(r.sl);
   const isRest = effectiveType(r, date)==='周日休息';
   const canCkAll = date < todayStr() && st!=='done' && total>0;
-  let html = '<div class="day-card'+(fold?' day-fold':'')+(delay?' delay-marked':'')+'">';
+  let html = '<div class="day-card'+(fold?' day-fold':'')+(delay?' delay-marked':'')+(over?' over-limit':'')+'">';
+  if(over){
+    html += '<div style="background:#FFF3E0;color:#E65100;font-size:11px;padding:4px 14px;border-bottom:1px solid #FFE0B2">⚠️ 已超过考试日，需加快进度</div>';
+  }
   if(TIP_DAYS[date]){
     html += '<div class="tip-bar">'+TIP_DAYS[date]+'</div>';
   }
@@ -2960,9 +2974,34 @@ function renderPlanList(){
       html += emptyHTML('没有拖延任务，继续保持！');
     }
   } else {
+    // 全部计划：遍历实际日期，按 stage 分组
     const stages = ['基础期','强化期','冲刺期','考试日'];
+    // 计算日期范围：从9月17号到最晚日期（DATA最后一天 + 最大偏移量 + 15天缓冲）
+    const startDate = '2026-09-17';
+    const lastBase = DATA[DATA.length-1].date;
+    const maxShift = SHIFT.reduce((m,s)=>Math.max(m, s.days||0), 0);
+    const endDate = fmtDate(new Date(parseDate(lastBase).getTime() + (maxShift+15)*86400000));
+    // 考试日日期（从CFG里取）
+    const examDate = CFG.exam || '2026-11-30';
+    // 按 stage 分组
+    const stageGroups = {};
+    stages.forEach(s=> stageGroups[s] = []);
+    let d = startDate;
+    while(d <= endDate){
+      const rows = dayTasks(d);
+      if(rows && rows.length){
+        const r = rows[0];
+        const st = r.stage || '其他';
+        if(stageGroups[st]) stageGroups[st].push(d);
+        else stageGroups['其他'] = stageGroups['其他']||[];
+      }
+      // 加一天
+      const dt = parseDate(d);
+      dt.setDate(dt.getDate()+1);
+      d = fmtDate(dt);
+    }
     stages.forEach(st=>{
-      const list = DATA.filter(r=>r.stage===st);
+      const list = stageGroups[st]||[];
       if(!list.length) return;
       html += '<div class="stage-block open" style="padding:0">' +
         '<div class="stage-head" style="cursor:pointer">' +
@@ -2971,7 +3010,11 @@ function renderPlanList(){
         '<div class="meta">'+list.length+' 天</div><div class="spacer"></div>' +
         '</div>' +
         '<div class="stage-body">';
-      list.forEach(r=>{ html += dayCardHTML(r.date, true); });
+      list.forEach(date=>{ 
+        // 超过考试日的标个提醒（不管是不是考试日，只要日期在11月30号之后就标）
+        const isOver = date > examDate;
+        html += dayCardHTML(date, true, false, isOver); 
+      });
       html += '</div></div>';
     });
   }
@@ -3038,18 +3081,22 @@ function bindCks(){
       e.preventDefault();
       const block = h.parentElement;
       const wasOpen = block.classList.contains('open');
-      const rect = h.getBoundingClientRect();
-      const viewportTop = rect.top;
       if(wasOpen){
+        // 折叠后，找到下一个阶段的标题，滚动到它
         block.classList.remove('open');
+        const nextBlock = block.nextElementSibling;
+        if(nextBlock && nextBlock.classList.contains('stage-block')){
+          const nextHead = nextBlock.querySelector('.stage-head');
+          if(nextHead){
+            setTimeout(()=>{
+              nextHead.scrollIntoView({behavior:'smooth', block:'start'});
+            }, 50);
+          }
+        }
       } else {
+        // 展开时，保持当前位置
         block.classList.add('open');
       }
-      requestAnimationFrame(()=>{
-        const newRect = h.getBoundingClientRect();
-        const diff = newRect.top - viewportTop;
-        window.scrollBy(0, diff);
-      });
     });
   });
   // JS 实现阶段标题吸顶（兼容 OPPO 浏览器等不支持 sticky 的浏览器）
@@ -3279,6 +3326,7 @@ function tmTryShowSave(mode){
     timerSt.pendingMode = mode;
     s.style.display = 'block';
     document.getElementById('tmSaveMins').textContent = Math.max(1, Math.round(cur/60000));
+    fillTmRecTasks(); // 填充今日任务到下拉框
   }
 }
 function tmReset(){
@@ -3344,16 +3392,50 @@ function tmOpen(){
 function tmClose(){ const p = document.getElementById('tmPanel'); if(p) p.classList.remove('show'); }
 function tmRecord(){
   const mins = Math.max(1, Math.round(timerSt.accMs[timerSt.pendingMode]/60000));
-  const hours = Math.round(mins/60*2)/2; // 分钟 → 小时（保留 0.5h，与任务用时单位一致）
+  const hours = Math.round(mins/60*2)/2;
+  const sel = document.getElementById('tmRecSel').value;
+  let key = 'timer|timer|专注';
+  if(sel==='custom'){
+    const custom = document.getElementById('tmRecCustom').value.trim();
+    if(custom) key = 'timer|timer|'+custom;
+  } else if(sel){
+    key = sel;
+  }
   const d = todayStr();
-  const key = 'timer|timer|专注';
   if(!DUR[d]) DUR[d] = {};
   DUR[d][key] = (+DUR[d][key]||0) + hours;
   saveDur();
-  const s = document.getElementById('tmSave');
-  if(s) s.style.display='none';
+  document.getElementById('tmSave').style.display='none';
   showToast('已记录 '+mins+' 分钟（'+hours+'h）到今日时长');
   refreshAll();
+}
+// 填充今日任务到下拉框
+function fillTmRecTasks(){
+  const sel = document.getElementById('tmRecSel');
+  if(!sel) return;
+  const today = todayStr();
+  const tasks = dayTasks(today);
+  let html = '<option value="">其他/专注练习</option>';
+  html += '<optgroup label="今日计划">';
+  if(tasks && tasks.length){
+    const r = tasks[0];
+    const xcList = splitTasks(r.xc||'');
+    const slList = splitTasks(r.sl||'');
+    if(xcList.length || slList.length){
+      xcList.forEach(t=>{ html += '<option value="xc|'+t.txt+'">'+t.txt+'</option>'; });
+      slList.forEach(t=>{ html += '<option value="sl|'+t.txt+'">'+t.txt+'</option>'; });
+    } else {
+      html += '<option value="" disabled>（今天没有计划）</option>';
+    }
+  } else {
+    html += '<option value="" disabled>（今天没有计划）</option>';
+  }
+  html += '</optgroup>';
+  html += '<option value="custom">-- 自己填 --</option>';
+  sel.innerHTML = html;
+  sel.onchange = function(){
+    document.getElementById('tmRecCustom').style.display = this.value==='custom' ? 'block' : 'none';
+  };
 }
 document.getElementById('tmFab').onclick = tmOpen;
 /* ===== 专注计时悬浮球可拖动（防误触：拖动后不触发打开） ===== */
@@ -3923,7 +4005,7 @@ document.getElementById('apOk').onclick = ()=>{
     if(apCat==='__custom__'){ const cn = document.getElementById('apCatCustom').value.trim(); return cn ? '【'+cn+'】'+t : t; }
     return '【'+apCat+'】'+t;
   });
-  if(!d || d<'2026-09-17' || d>'2026-11-30'){ showToast('请选择计划区间内的日期'); return; }
+  if(!d || d<'2026-09-17' || d>'2026-12-31'){ showToast('请选择计划区间内的日期'); return; }
   if(!lines.length){ showToast('请填写至少一条任务'); return; }
   CUSTOM[d] = CUSTOM[d]||{xc:[],sl:[]};
   const target = (apCat==='申论') ? CUSTOM[d].sl : CUSTOM[d].xc;
@@ -3975,6 +4057,7 @@ function renderRestList2(){
       saveRest();
       renderRestList2();
       refreshAll();
+      fillTmRecTasks(); // 重新填充专注计时下拉框
       showToast('已取消 '+d.slice(5)+' 的休息日，任务已恢复');
     };
   });
