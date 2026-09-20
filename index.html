@@ -209,6 +209,13 @@ body{
 .day-head .meta{font-size:11px;color:var(--ink2);line-height:1.4}
 .day-head .spacer{flex:1}
 .day-fold .day-head{cursor:pointer;user-select:none}
+/* 阶段标题吸顶（兼容 OPPO 浏览器，用 JS 实现） */
+.stage-block{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:visible;position:relative}
+.stage-block:not(.open) .stage-body{display:none}
+.stage-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);position:relative;z-index:5;border-bottom:1px solid var(--line);border-radius:var(--radius) var(--radius) 0 0;transition:all .2s}
+.stage-head.fixed{position:fixed;top:62px;left:0;right:0;border-radius:0;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.stage-head .stage-arrow{font-size:10px;transition:transform .2s}
+.stage-block:not(.open) .stage-arrow{transform:rotate(-90deg)}
 .day-fold .fold-arrow{flex:none;width:14px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink2);font-size:11px;transition:transform .18s}
 .day-fold .fold-arrow::after{content:'▾'}
 .day-fold .fold-arrow.closed::after{content:'▸'}
@@ -528,7 +535,7 @@ body{
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .modal-mask{position:fixed;inset:0;z-index:60;background:rgba(20,35,28,.45);display:flex;align-items:center;justify-content:center;padding:28px}
-.modal{background:#fff;border-radius:16px;width:100%;max-width:340px;padding:20px;box-shadow:0 12px 40px rgba(20,35,28,.22)}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:340px;padding:20px;box-shadow:0 12px 40px rgba(20,35,28,.22);max-height:85vh;overflow-y:auto}
 .modal-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:12px}
 .modal-task{font-size:13.5px;color:var(--ink);line-height:1.6;background:var(--primary-soft);border-radius:10px;padding:10px 12px;max-height:72px;overflow:auto}
 .modal-hint{font-size:12.5px;color:var(--primary);font-weight:700;margin-top:10px}
@@ -700,7 +707,7 @@ body.narrow .tune{gap:10px!important}
     <div class="tune">
       <button data-tune="1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>增加计划</button>
       <button data-tune="2"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>休息设置</button>
-      <button data-tune="3"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h14M12 5l7 7-7 7"/></svg>计划前移</button>
+      <button data-tune="3"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h14M12 5l7 7-7 7"/></svg>计划移动</button>
     </div>
 
     <div id="durCardSlot"></div>
@@ -1048,6 +1055,74 @@ body.narrow .tune{gap:10px!important}
   </div>
 </div>
 
+<div class="modal-mask" id="restMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">休息设置</div>
+    <div class="modal-body">
+      <label class="set-label">选择日期</label>
+      <input type="date" class="modal-date" id="restDate2" min="2026-09-17" max="2026-11-29">
+      <div id="restList2" style="margin-top:12px"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="restCancel">关闭</button>
+      <button class="modal-ok" id="restAdd2">设为休息日</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="restConfirmMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">当天任务怎么处理？</div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--ink);margin-bottom:12px">把 <span id="restConfirmDate"></span> 设为休息日，选一种方式：</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <button class="set-btn" id="restShiftAll">全部后移一天（整体顺延，每天任务量不变）</button>
+        <button class="set-btn ghost" id="restPickSome">选部分任务移到明天（明天任务会变多）</button>
+      </div>
+      <div id="restTaskListWrap" style="display:none">
+        <div style="font-size:12px;color:var(--ink2);margin-bottom:6px">勾选要移到明天的任务：</div>
+        <div id="restTaskList" style="max-height:200px;overflow-y:auto;margin-bottom:6px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <button class="set-btn ghost" id="restSelAll" style="flex:1">全选</button>
+          <button class="set-btn ghost" id="restSelNone" style="flex:1">全不选</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="restConfirmCancel">取消</button>
+      <button class="modal-ok" id="restConfirmOk" style="display:none">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="shiftMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">计划移动</div>
+    <div class="modal-body">
+      <label class="set-label">从哪天移</label>
+      <input type="date" class="modal-date" id="shiftDate" min="2026-09-17" max="2026-11-29">
+      <div id="shiftTaskWrap" style="margin-top:12px;display:none">
+        <div style="font-size:12px;color:var(--ink2);margin-bottom:6px">勾选要移动的任务（可以前移也可以后移）：</div>
+        <div id="shiftTaskList" style="max-height:180px;overflow-y:auto;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button class="set-btn ghost" id="shiftSelAll" style="flex:1">全选</button>
+          <button class="set-btn ghost" id="shiftSelNone" style="flex:1">全不选</button>
+        </div>
+        <label class="set-label">移到哪一天</label>
+        <input type="date" class="modal-date" id="shiftTargetDate" min="2026-09-17" max="2026-11-29">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="shiftCancel">取消</button>
+      <button class="modal-ok" id="shiftOk" style="display:none">确认移动</button>
+    </div>
+    <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
+      <div style="font-size:12px;color:var(--ink2);margin-bottom:6px">所有移动记录（点移回原位撤销）：</div>
+      <div id="shiftAllList" style="max-height:180px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-mask" id="mvMask" style="display:none">
   <div class="modal">
     <div class="modal-title">移动任务到</div>
@@ -1288,7 +1363,7 @@ body.narrow .tune{gap:10px!important}
 const DATA = [{"date":"2026-09-17","week":"周四","type":"工作日","stage":"基础期","xc":"高照速算3页纸+百化分默写\n刘义恒图推第2节（平面-样式规律+标记）\n高照资料第4节（现期量）\n资料第4节课后作业（现期量）\n资料第3节课后作业（基期量）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-18","week":"周五","type":"工作日","stage":"基础期","xc":"刘义恒图推第3节（平面-属性规律+数量规律（面））\n(3+2作业)资料第4节（现期量）（讲义二刷+复盘）\n(3+2作业)资料第3节（基期量）（讲义二刷+复盘）\n(3+2作业)图推第1节（位置规律+相邻比较）\n(3+2作业)图推第2节（样式规律+标记）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-19","week":"周六","type":"周六","stage":"基础期","xc":"(3+2作业)图推第3节（属性规律+数量规律）\n高照资料第5节（增长量）\n(选做)高照速算3页纸+百化分默写\n高照速算3页纸+百化分默写\n资料第5节课后作业（增长量）\n高照资料第6节 前1/3（一般增长率）\n(3+2作业)资料第5节（增长量）（讲义二刷+复盘）","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-09-20","week":"周日","type":"周日学习","stage":"基础期","xc":"刘义恒图推第4节（平面-数量规律（笔画、线、点））\n高照资料第6节（增长率）全部学完\n刘义恒图推第5节（平面-数量规律（元素、直角）+图）\n高照速算3页纸+百化分默写","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-09-21","week":"周一","type":"工作日","stage":"基础期","xc":"(3+2作业)图推第4节（数量规律（笔画、线、点））\n(3+2作业)资料第6节（增长率）（讲义二刷+复盘）\n资料第6节课后作业（一般增长率）\n高照资料第7节（间隔增长率）\n高照速算3页纸+百化分默写\n资料思维导图默写（基期现期增长量增长率）+红笔批改","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-22","week":"周二","type":"工作日","stage":"基础期","xc":"资料第7节课后作业（间隔增长率）\n(3+2作业)资料第7节（间隔增长率）（讲义二刷+复盘）\n高照资料第8节（年均增长率、乘积增长率）\n(3+2作业)图推第5节（数量规律（元素、直角））\n默写平面图推全部思维导图+批改\n高照速算3页纸+百化分默写","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-23","week":"周三","type":"工作日","stage":"基础期","xc":"(3+2作业)资料第8节（乘积增长率+年均增长率）\n资料思维导图默写（间隔年均乘积增长率）+红笔批改\n资料第8节课后作业（年均增长率、乘积增长率）\n刘义恒图推第6节（平面思维导图串讲（梳理课））\n高照速算3页纸+百化分默写\n高照资料第9节（混合增长率）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-24","week":"周四","type":"工作日","stage":"基础期","xc":"刘义恒图推第7节（空间-六面体+四面体）\n刘义恒图推第8节（空间-三视图+截面）\n资料思维导图默写（基期现期增长量增长率）+红笔批改\n高照速算3页纸+百化分默写\n资料第9节课后作业（混合增长率）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-25","week":"周五","type":"工作日","stage":"基础期","xc":"(3+2作业)资料第9节（混合增长率）（讲义二刷+复盘）\n(3+2作业)图推第7节（六面体+四面体）（讲义二刷+复盘）\n高照速算3页纸+百化分默写\n默写平面图推全部思维导图+批改\n高照资料第10节（比重）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-26","week":"周六","type":"周六","stage":"基础期","xc":"(3+2作业)图推第8节（三视图+截面）（讲义二刷+复盘）\n高照资料第11节（平均数）\n资料第10节课后作业（比重）\n(3+2作业)资料第10节（比重类）（讲义二刷+复盘）\n(3+2作业)资料第11节（平均数）（讲义二刷+复盘）\n资料思维导图默写（间隔年均乘积混合增长率）+红笔批改","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-09-27","week":"周日","type":"周日学习","stage":"基础期","xc":"高照速算3页纸+百化分默写\n刘义恒图推第9节（空间-立体拼合、平面拼合、不规则）\n资料第11节课后作业（平均数）\n(3+2作业)图推第9节（立体拼合、平面拼合、不规则）（讲义二刷+复盘）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-09-28","week":"周一","type":"工作日","stage":"基础期","xc":"默写图推全部思维导图+批改\n高照资料第12节（倍数）\n资料第12节课后作业（倍数）\n(3+2作业)资料第12节（倍数）（讲义二刷+复盘）\n高照速算3页纸+百化分默写\n高照资料第13节（A与非A、综合分析）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-29","week":"周二","type":"工作日","stage":"基础期","xc":"图推140题Day1（位置规律）\n高照速算3页纸+百化分默写\n花生判断第1节 学完2/3（逻辑1）\n图推140题Day2（相邻比较）\n(3+2作业)资料第13节（A与非A）（讲义二刷+复盘）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-30","week":"周三","type":"工作日","stage":"基础期","xc":"花生逻辑1思维导图自己梳理写一遍\n花生判断第1节 全部学完（逻辑1）\n资料夸夸刷第1节（基期量）\n(3+2作业)花生逻辑1讲义题目二刷重做+复盘\n图推140题Day3（黑白运算）\n图推140题Day5（标记作用）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-01","week":"周四","type":"工作日","stage":"基础期","xc":"图推140题Day4（加减同异）\n高照速算3页纸+百化分默写\n资料夸夸刷第2节 前半部分（现期量）\n花生判断第2节（逻辑2）\n花生判断第3节（逻辑3）\n图推140题Day6（属性规律）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-02","week":"周五","type":"工作日","stage":"基础期","xc":"资料夸夸刷第2节 后半部分（现期量）\n高照速算3页纸+百化分默写\n图推140题Day7（面笔画点）\n(3+2作业)花生逻辑2讲义题目二刷重做+复盘\n图推140题Day9（面的细化）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-03","week":"周六","type":"周六","stage":"基础期","xc":"图推140题Day8（直角素线）\n资料思维导图默写（基期现期）+红笔批改\n(3+2作业)花生逻辑3讲义题目二刷重做+复盘\n默写平面图推思维导图+红笔批改\n花生逻辑前3节思维导图自己梳理写一遍\n资料夸夸刷第3节（增长量）\n资料夸夸刷第4节 前半部分（一般增长率）","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-10-04","week":"周日","type":"周日学习","stage":"基础期","xc":"图推140题Day11（曲线思路）\n图推140题Day10（元素细化）\n高照速算3页纸+百化分默写\n花生判断第4节 前半部分（逻辑4）\n花生判断第4节 全部学完（逻辑4）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-10-05","week":"周一","type":"工作日","stage":"基础期","xc":"(3+2作业)花生逻辑4讲义题目二刷重做+复盘\n默写逻辑前4节思维导图+批改\n图推140题Day12（图形关系）\n高照速算3页纸+百化分默写\n花生判断第5节（逻辑5）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-06","week":"周二","type":"工作日","stage":"基础期","xc":"图推140题Day14（四面体）\n图推140题Day13（六面体）\n高照速算3页纸+百化分默写\n资料夸夸刷第4节 后半部分（一般增长率）\n花生判断第6节（逻辑6）\n图推140题的错题二刷重做+总结","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-07","week":"周三","type":"工作日","stage":"基础期","xc":"高照速算3页纸+百化分默写\n默写图推全部思维导图+批改\n默写花生逻辑全部思维导图+批改\n(3+2作业)花生逻辑6讲义题目二刷重做+复盘\n资料思维导图默写（增长量,一般增长率）+红笔批改","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-08","week":"周四","type":"工作日","stage":"基础期","xc":"(3+2作业)花生逻辑5讲义题目二刷重做+复盘\n资料夸夸刷第5节 前半部分（年均增长率、间隔增长率）\n资料夸夸刷第5节 后半部分（年均增长率、间隔增长率）\n判断海海刷（逻辑刷题1）\n高照速算3页纸+百化分默写","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-09","week":"周五","type":"工作日","stage":"基础期","xc":"图推夸夸刷第1节 前半部分（黑白块专项+模型1）\n图推夸夸刷第1节 后半部分（黑白块专项+模型1）\n资料夸夸刷第6节（乘积增长率、混合增长率）\n判断海海刷 前半部分（逻辑刷题2）\n判断海海刷 后半部分（逻辑刷题2）\n资料夸夸刷第7节 前半部分（比重）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-10","week":"周六","type":"周六","stage":"基础期","xc":"资料思维导图默写（年均间隔乘积混合增长率）+红笔批改\n默写花生逻辑全部思维导图+批改\n高照速算3页纸+百化分默写\n资料夸夸刷第7节 后半部分（比重）\n默写图推全部思维导图+批改\n判断海海刷（逻辑刷题4）","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-10-11","week":"周日","type":"周日学习","stage":"基础期","xc":"判断海海刷（逻辑刷题3）\n图推夸夸刷第2节 前半部分（黑白块专项+模型2）\n高照速算3页纸+百化分默写\n程意判断第11节 前2/3（类比推理1）\n图推夸夸刷第2节 后半部分（黑白块专项+模型2）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-10-12","week":"周一","type":"工作日","stage":"强化期","xc":"资料夸夸刷第8节（平均数）\n图推夸夸刷第3节 前2/3（黑白块专项+模型3）\n高照速算3页纸+百化分默写\n程意判断第11节 全部学完（类比推理1）\n判断海海刷（逻辑刷题5）\n资料夸夸刷第9节 前半部分（倍数）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-13","week":"周二","type":"工作日","stage":"强化期","xc":"默写逻辑全部思维导图+批改\n图推夸夸刷第3节 学完（黑白块专项+模型3）\n资料夸夸刷第9节 后半部分（倍数）\n程意判断第12节（类比推理2）\n高照速算3页纸+百化分默写","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-14","week":"周三","type":"工作日","stage":"强化期","xc":"资料思维导图默写（比重平均数倍数）+红笔批改\n资料夸夸刷第10节（切入点与易错点）\n(3+2作业)判断第12节（类比推理2）（讲义二刷+复盘）\n(3+2作业)判断第11节（类比推理1）（讲义二刷+复盘）\n高照速算3页纸+百化分默写\n图推夸夸刷第4节 前半部分（黑白块专项+模型串讲）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-15","week":"周四","type":"工作日","stage":"强化期","xc":"高照速算3页纸+百化分默写\n程意判断第13节（类比推理3+定义判断1）\n资料夸夸刷第1-3节错题二刷+复盘总结\n图推夸夸刷第4节 后半部分（黑白块专项+模型串讲）\n程意判断第14节（定义判断2）\n资料夸夸刷第4-6节错题二刷+复盘总结","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-16","week":"周五","type":"工作日","stage":"强化期","xc":"判断海海刷（逻辑刷题6）前半部分\n(3+2作业)判断第13节（类比推理3+定义判断1）（讲义二刷+复盘）\n判断海海刷（逻辑刷题6）后半部分\n图推夸夸刷前4节 错题二刷+复盘总结\n默写图推全部思维导图+批改","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-17","week":"周六","type":"周六","stage":"强化期","xc":"资料夸夸刷第7-10节错题二刷+复盘总结\n图推夸夸刷第5节 前半部分（“3+3”专项刷题1）\n判断海海刷 逻辑前3节 错题二刷+复盘总结\n判断类比、定义夸夸刷 分别10题（计时做题+复盘）\n判断海海刷 逻辑后3节 错题二刷+复盘总结\n高照速算3页纸+百化分默写\n默写类比、定义思维导图+批改","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-10-18","week":"周日","type":"周日学习","stage":"强化期","xc":"资料超大杯15-20题+复盘（计时做题+听视频复盘）\n图推夸夸刷第5节 后半部分（“3+3”专项刷题1）\n判断海海刷（判断套题1）\n判断海海刷（判断套题2）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-10-19","week":"周一","type":"工作日","stage":"强化期","xc":"高照速算3页纸+百化分默写\n资料超大杯10题+复盘（计时做题+听视频复盘）\n张弓言语 课后练习1\n张弓言语第1节（中心理解解释关系与新旧关系）\n默写逻辑全部思维导图+红笔批改","sl":"白鹭归纳概括基础课1+2+3（听课+记笔记）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-20","week":"周二","type":"工作日","stage":"强化期","xc":"图推夸夸刷第6节 前半部分（“3+3”专项刷题2）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n图推夸夸刷第6节 后半部分（“3+3”专项刷题2）\n判断定义、类比夸夸刷 分别10题（计时做题+复盘）","sl":"5.15 归纳概括学生用题（预习+听视频复盘）\n5.15归纳概括 三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-21","week":"周三","type":"工作日","stage":"强化期","xc":"张弓言语第2节（中心理解的主题词与强调关系）\n高照数量第1节（倍数特性）\n张弓言语 课后练习2\n花生逻辑600题 20题+复盘\n(3+2作业)数量第1节（倍数）\n高照数量第1节（倍数特性）——课后习题","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-22","week":"周四","type":"工作日","stage":"强化期","xc":"张弓言语第3节（中心理解转折关系与因果关系）\n图推夸夸刷第7节（空间专项1）\n张弓言语 课后练习3\n花生逻辑600题20题+复盘\n资料超大杯15-20题+复盘（计时做题+听视频复盘）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-23","week":"周五","type":"工作日","stage":"强化期","xc":"张弓言语课后练习4\n张弓言语第4节（中心理解题的对策类文段）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n资料、判断不熟的思维导图默写+红笔批改","sl":"5.18归纳概括学生用题（预习+听视频复盘）\n5.18归纳概括三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-24","week":"周六","type":"周六","stage":"强化期","xc":"高照数量第2节（方程）\n高照数量第2节（方程问题）——课后习题\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n资料最近刷过的题错题二刷+复盘总结\n判断海海刷（判断套题3）\n张弓言语第5节（中心理解并列关系与细节判断）\n张弓言语 课后练习5\n图推夸刷第8节 前半部分（空间专项2）","sl":"","hours":8,"done":"未开始","note":"周六 8h（数量第2节+资料超大杯由10.25提前）"},{"date":"2026-10-25","week":"周日","type":"周日学习","stage":"强化期","xc":"张弓言语第6节（正确认识后文推断题与语句填空）\n张弓言语 课后练习6\n【摸底】行测套题首套：计时2小时做题+复盘（标记强弱模块，可不限时）","sl":"白鹭对策建议基础课（听课+记笔记）","hours":8,"done":"未开始","note":"摸底整卷日：行测套题首套提前至此（周日多学2h，可自行取舍）"},{"date":"2026-10-26","week":"周一","type":"工作日","stage":"强化期","xc":"(3+2作业)数量第2节（方程）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n图推夸刷第8节 后半部分（空间专项2）\n判断定义、类比夸刷 分别10题（计时做题+复盘）\n判断类比夸夸刷10-15题（计时做题+复盘）","sl":"5.22 对策建议学生用题（预习+听视频复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-27","week":"周二","type":"工作日","stage":"强化期","xc":"张弓言语第7节（正确认识语句排序题）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n张弓言语 课后练习7\n张弓言语第8节（选词填空句内分析和全文理解）","sl":"5.22 对策建议 二道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-28","week":"周三","type":"工作日","stage":"强化期","xc":"张弓言语 课后练习8\n图推综合刷题10-20题（计时做题+复盘）\n判断海海刷（判断套题4）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n判断定义夸夸刷10-15题（计时做题+复盘）\n张弓言语第9节（选词填空之常考的并列关系）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-29","week":"周四","type":"工作日","stage":"强化期","xc":"张弓言语 课后练习9\n张弓言语第10节（选词填空转折和因果、形象表述）\n张弓言语 课后练习10\n花生逻辑600题 20题+复盘\n政治理论基础课第1节 前半部分","sl":"5.25 对策建议学生用题（预习+听视频复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-30","week":"周五","type":"工作日","stage":"强化期","xc":"高照数量第5节（几何）\n张弓言语第11节（选词填空词义侧重和搭配用法）\n张弓言语 课后练习11\n高照数量第5节（几何问题）——课后习题","sl":"5.25 对策建议 二道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-31","week":"周六","type":"周六","stage":"强化期","xc":"政治理论基础课第1节 后半部分\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n花生逻辑600题 20题+复盘\n张弓言语第12节（选词填空程度轻重和感情色彩）\n张弓言语 课后练习12\n花生判断 模块刷题（倒计时做题+复盘）","sl":"白鹭综合分析基础课1+2+3（听课+记笔记）","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-01","week":"周日","type":"周日学习","stage":"强化期","xc":"政治理论基础课第2节\n(3+2作业)数量第5节（几何）\n(碎片时间)高频成语词语背诵\n资料超大杯15-20题+复盘（计时做题+听视频复盘）","sl":"5.29综合分析 学生用题（预习+听视频复盘）","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-02","week":"周一","type":"工作日","stage":"强化期","xc":"(碎片时间)高频成语词语背诵\n高照数量第xx节（意向考试第3高频题型）——课后习题\n政治理论基础课第3节 前半部分\n图推综合刷题10-20题（计时做题+复盘）\n高照数量第xx节（意向考试第3高频题型）","sl":"5.29综合分析 二道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-03","week":"周二","type":"工作日","stage":"强化期","xc":"(3+2作业)数量第xx节（意向考试第3高频题型）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课第3节 后半部分\n行测（资料，判断，言语）刷过的题 错题二刷+复盘总结\n资料，判断，言语不熟的思维导图默写+红笔批改","sl":"6.1 综合分析 学生用题（预习+听视频复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-04","week":"周三","type":"工作日","stage":"强化期","xc":"政治理论基础课第4节 前半部分\n判断定义夸夸刷10题（计时做题+复盘）\n张弓言语基础课预习的错题二刷重做+复盘总结\n高照数量第xx节 前半部分（意向考试第4高频题型）\n花生逻辑600题 20题+复盘","sl":"6.1 综合分析 三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-05","week":"周四","type":"工作日","stage":"强化期","xc":"默写花生逻辑全部思维导图+批改\n政治理论基础课第4节 后半部分\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n高照数量第xx节 后半部分（意向考试第4高频题型）\n高照数量第xx节（意向考试第4高频题型）——课后习题","sl":"白鹭应用文基础课1+2（听课+记笔记）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-06","week":"周五","type":"工作日","stage":"强化期","xc":"（3+2作业）数量第xx节（意向考试第4高频题型）\n（碎片时间）高频成语词语背诵\n张弓言语 专项提升第1节\n花生判断 模块刷题（倒计时做题+复盘）","sl":"6.5 应用文 学生用题（预习+听视频复盘）\n6.5 应用文 三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-07","week":"周六","type":"周六","stage":"强化期","xc":"政治理论基础课第5节 前半部分\n已学完的数量基础课3+2作业的错题再次三刷+复盘总结\n数量已学完的全部思维导图默写+批改\n（碎片时间）高频成语词语背诵\n政治理论基础课第5节 后半部分\n资料超大杯15-20题+复盘（计时做题+听视频复盘）","sl":"6.8 应用文 三道作业题","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-08","week":"周日","type":"周日学习","stage":"强化期","xc":"张弓言语 专项提升第2节\n政治理论基础课第6节 前半部分\n图推综合刷题 10题（计时做题+复盘）\n张弓言语 专项提升第3节","sl":"6.8 应用文 学生用题（预习+听视频复盘）","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-09","week":"周一","type":"工作日","stage":"冲刺期","xc":"行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n政治理论基础课第6节 后半部分\n政治理论基础课第7节 前半部分\n(碎片时间)高频成语词语背诵\n张弓言语 专项提升第4节\n资料超大杯10-15题+复盘（计时做题+听视频复盘）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-10","week":"周二","type":"工作日","stage":"冲刺期","xc":"政治理论基础课第7节 后半部分\n花生判断 模块刷题（倒计时做题+复盘）\n资料超大杯10-15题+复盘（计时做题+听视频复盘）","sl":"袁东大作文第1节（标题+总论点1）\n袁东大作文第2节（标题+总论点2）\n申论概括题（已刷过的题目挑2-3题二刷重做+复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-11","week":"周三","type":"工作日","stage":"冲刺期","xc":"张弓言语 专项提升第5节\n数量夸夸刷第1节 前半部分（倍数特性）\n(碎片时间)高频成语词语背诵\n数量夸夸刷第1节 后半部分（倍数特性）","sl":"袁东大作文第3节（大作文开头）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-12","week":"周四","type":"工作日","stage":"冲刺期","xc":"政治理论基础课第8节\n张弓言语 专项提升第6节\n(碎片时间)高频成语词语背诵\n图推综合刷题10题（计时做题+复盘）","sl":"袁东大作文第4节（分论点润色）\n申论对策建议题（已刷过的题目挑2-3题二刷重做+复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-13","week":"周五","type":"工作日","stage":"冲刺期","xc":"资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课第8节 后半部分\n不熟悉的思维导图 挑着默写背诵+批改（酌情补充专项）\n行测错题复盘日（资料，判断，言语，数量）错题二刷\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）","sl":"袁东大作文第5节（寻找分论点1）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-14","week":"周六","type":"周六","stage":"冲刺期","xc":"(碎片时间)高频成语词语背诵\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课第9节 前半部分\n言语 模块刷题（计时刷题+复盘）","sl":"申论综合分析题（已刷过的题目挑2-3题二刷重做+复盘）\n袁东大作文第6节（寻找分论点2）","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-15","week":"周日","type":"周日学习","stage":"冲刺期","xc":"资料超大杯10题+复盘（计时做题+听视频复盘）\n政治理论基础课第9节 后半部分\n(碎片时间)高频成语词语背诵\n政治理论基础课第10节 前半部分","sl":"袁东大作文第7节（分论点论证）","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-16","week":"周一","type":"工作日","stage":"冲刺期","xc":"花生判断 模块刷题（倒计时做题+复盘）\n数量夸夸刷第2节 前半部分（方程）\n(碎片时间)高频成语词语背诵\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n数量夸夸刷第2节 后半部分（方程）","sl":"袁东大作文第8节（大作文结尾）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-17","week":"周二","type":"工作日","stage":"冲刺期","xc":"政治理论基础课第10节 后半部分\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n(碎片时间)高频成语词语背诵\n政治理论基础课/时政/刷题练习1.5小时","sl":"申论公文题（已刷过的题目挑2-3题二刷重做+复盘）\n(碎片时间)大作文素材积累背诵","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-18","week":"周三","type":"工作日","stage":"冲刺期","xc":"数量夸夸刷第4节（几何）\n(碎片时间)高频成语词语背诵\n政治理论基础课/时政/刷题练习1.5小时\n默写花生逻辑全部思维导图+批改\n花生逻辑600题20题+复盘","sl":"袁东大作文练习（单主题大作文理念真题实战）第9节","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-19","week":"周四","type":"工作日","stage":"冲刺期","xc":"资料超大杯10-15题+复盘（计时做题+听视频复盘）\n(碎片时间)高频成语词语背诵\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n行测错题复盘日（资料，判断，言语，数量）错题二刷\n政治理论基础课/时政/刷题练习1.5小时","sl":"袁东大作文练习（双主题大作文理念真题实战）第10节","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-20","week":"周五","type":"工作日","stage":"冲刺期","xc":"(选做)政治理论背诵复习\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n数量夸夸刷第xx节（意向考试第3高频题型）\n政治理论基础课/时政/刷题练习1.5小时","sl":"申论套题倒计时2.5/3小时做题+复盘（优先意向考试最近5年真题）\n(选做)政治理论背诵复习","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-21","week":"周六","type":"周六","stage":"冲刺期","xc":"(选做)政治理论背诵复习\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n(碎片时间)高频成语词语背诵","sl":"(碎片时间)大作文素材积累背诵\n袁东大作文练习（多主题大作文理念真题实战）第11节\n申论套题倒计时2.5/3小时做题+复盘（优先意向考试最近5年真题）","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-22","week":"周日","type":"周日学习","stage":"冲刺期","xc":"数量夸夸刷第xx节（意向考试第4高频题型）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课/时政/刷题练习1.5小时","sl":"(碎片时间)大作文素材积累背诵","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-23","week":"周一","type":"工作日","stage":"冲刺期","xc":"(上午9-11)行测套题计时2小时刷题（包括涂卡）\n昨天的行测申论套题 全部复盘完毕\n政治理论基础课/时政/刷题练习1.5小时","sl":"(下午2-4.30)申论套题计时2.5小时刷题（尽量写完）\n(碎片时间)大作文素材积累背诵\n晚上时间简单复盘一部分，明天继续复盘","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-24","week":"周二","type":"工作日","stage":"冲刺期","xc":"政治理论基础课/时政/刷题练习1.5小时\n(上午9-11)行测套题计时2小时刷题（包括涂卡）","sl":"(下午2-4.30)申论套题计时2.5小时刷题（尽量写完）\n(碎片时间)大作文素材积累背诵\n晚上时间简单复盘一部分，明天继续复盘","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-25","week":"周三","type":"工作日","stage":"冲刺期","xc":"昨天的行测申论套题 全部复盘完毕\n行测错题复盘日（资料，判断，言语，数量）错题二刷\n不熟悉的思维导图 挑着默写背诵+批改（酌情补充专项）\n政治理论基础课/时政/刷题练习1.5小时","sl":"(碎片时间)大作文素材积累背诵\n后续计划参考：两天一个循环（1套行测+1套申论），上午行测下午申论","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-26","week":"周四","type":"工作日","stage":"冲刺期","xc":"【全真模考】行测模考3：限时120分钟（9:00-11:00）；晚上1小时当日复盘+错题整理","sl":"【全真模考】申论模考3：限时180分钟（14:00-17:00）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-27","week":"周五","type":"工作日","stage":"冲刺期","xc":"【总复习】错题本三刷：言语/判断/资料错题+时政冲刺；晚上1小时当日复盘+错题整理","sl":"【总复习】作文框架+开头结尾模板背诵，小题要点回顾","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-28","week":"周六","type":"周六","stage":"冲刺期","xc":"【考前梳理】公式速记、高频成语、数量必考题型；轻量保持；晚上早睡；晚上2小时周复盘","sl":"【考前梳理】作文素材速记、公文格式默写；轻量保持","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-29","week":"周日","type":"周日学习","stage":"冲刺期","xc":"【考前梳理】错题本终扫、公式速记、高频成语；轻量保持，晚上早睡","sl":"【考前梳理】作文素材/公文格式最后过一遍；轻量保持","hours":6,"done":"未开始","note":"2027国考笔试日"},{"date":"2026-11-30","week":"周一","type":"考试日","stage":"考试日","xc":"【国考笔试日】行测 9:00-11:00（以准考证为准）","sl":"祝金榜题名！","hours":0,"done":"未开始","note":""}];
 
 /* ===== 用户设置（localStorage，可在设置页修改） ===== */
-const CFG_KEY='gk72_cfg', CUSTOM_KEY='gk72_custom', REST_KEY='gk72_rest', REMOVE_KEY='gk72_remove', MOVED_KEY='gk72_moved', DELETED_KEY='gk72_deleted', NODES_KEY='gk72_nodes', EXAMLOG_KEY='gk72_examlog', DUR_KEY='gk72_dur', LASTDUR_KEY='gk72_lastdur';
+const CFG_KEY='gk72_cfg', CUSTOM_KEY='gk72_custom', REST_KEY='gk72_rest', REMOVE_KEY='gk72_remove', MOVED_KEY='gk72_moved', DELETED_KEY='gk72_deleted', NODES_KEY='gk72_nodes', EXAMLOG_KEY='gk72_examlog', DUR_KEY='gk72_dur', LASTDUR_KEY='gk72_lastdur', SHIFT_KEY='gk72_shift', RESTOPS_KEY='gk72_restops';
 const NODES_DEFAULT = [
   {id:'notice', name:'公告发布', start:'2026-10-14', end:'2026-10-14', desc:'官方发布公告与职位表'},
   {id:'signup', name:'网上报名', start:'2026-10-15', end:'2026-10-24', desc:'选岗报名，务必完成'},
@@ -1307,6 +1382,65 @@ let REST = []; try{ REST = JSON.parse(localStorage.getItem(REST_KEY)||'[]'); }ca
 let REMOVE = {}; try{ REMOVE = JSON.parse(localStorage.getItem(REMOVE_KEY)||'{}'); }catch(e){}
 let MOVED = {}; try{ MOVED = JSON.parse(localStorage.getItem(MOVED_KEY)||'{}'); }catch(e){}
 let DELETED = {}; try{ DELETED = JSON.parse(localStorage.getItem(DELETED_KEY)||'{}'); }catch(e){}
+/* 整体日期平移：[{from:'2026-09-20', days:1}]，days=+1 表示从from起整体后移一天 */
+let SHIFT = []; try{ SHIFT = JSON.parse(localStorage.getItem(SHIFT_KEY)||'[]'); }catch(e){}
+/* 休息日操作记录：{date: {moved:[{type,text}], deleted:[{type,text}], from, to}} */
+let RESTOPS = {}; try{ RESTOPS = JSON.parse(localStorage.getItem(RESTOPS_KEY)||'{}'); }catch(e){}
+/* 版本迁移：自动清掉旧的休息日平移数据和测试期间的移动记录 */
+const SHIFT_VER = 'v3_20260920';
+if(localStorage.getItem('gk72_shift_ver') !== SHIFT_VER){
+  SHIFT = [];
+  RESTOPS = {};
+  // 清掉测试期间产生的任务移动记录（9.17~9.20）
+  ['2026-09-17','2026-09-18','2026-09-19','2026-09-20'].forEach(d=>{
+    delete REMOVE[d];
+    delete DELETED[d];
+    delete CUSTOM[d];
+  });
+  // 清掉这几天的 MOVED 标记
+  Object.keys(MOVED).forEach(k=>{
+    if(k.startsWith('2026-09-17') || k.startsWith('2026-09-18') || k.startsWith('2026-09-19') || k.startsWith('2026-09-20')){
+      delete MOVED[k];
+    }
+  });
+  localStorage.setItem(SHIFT_KEY, '[]');
+  localStorage.setItem(RESTOPS_KEY, '{}');
+  localStorage.setItem(REMOVE_KEY, JSON.stringify(REMOVE));
+  localStorage.setItem(DELETED_KEY, JSON.stringify(DELETED));
+  localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUSTOM));
+  localStorage.setItem(MOVED_KEY, JSON.stringify(MOVED));
+  localStorage.setItem('gk72_shift_ver', SHIFT_VER);
+}
+function saveRestOps(){ localStorage.setItem(RESTOPS_KEY, JSON.stringify(RESTOPS)); syncQueue(); }
+function saveShift(){ localStorage.setItem(SHIFT_KEY, JSON.stringify(SHIFT)); syncQueue(); }
+/* 显示日 d 的基础计划偏移天数（累计） */
+function shiftOffset(d){
+  let off = 0;
+  SHIFT.forEach(s=>{ if(d >= s.from) off += s.days; });
+  return off;
+}
+/* 显示日 d 对应的基础计划日期 */
+function baseDateOf(d){
+  const off = shiftOffset(d);
+  if(off===0) return d;
+  const dt = parseDate(d);
+  dt.setDate(dt.getDate() - off);
+  return fmtDate(dt);
+}
+/* 整体后移一天：从 from 日起所有任务后移一天 */
+function shiftBackward(from){
+  if(from < '2026-09-17' || from >= '2026-11-30'){ showToast('不能在这个日期操作'); return; }
+  SHIFT.push({from:from, days:1});
+  saveShift();
+  refreshAll();
+}
+/* 整体前移一天：从 from 日起所有任务前移一天 */
+function shiftForward(from){
+  if(from < '2026-09-17' || from >= '2026-11-30'){ showToast('不能在这个日期操作'); return; }
+  SHIFT.push({from:from, days:-1});
+  saveShift();
+  refreshAll();
+}
 let CFG = Object.assign({exam:'2026-11-30', session:'上午', wd:9.5, sat:8, sundayRest:true, examName:'2027国考笔试', motto:'道阻且长，行则将至'}, JSON.parse(localStorage.getItem(CFG_KEY)||'{}'));
 function saveCfg(){ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); try{ localStorage.setItem(SYNC_TS_KEY, String(Date.now())); }catch(e){} syncQueue(); }
 function saveCustom(){ localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUSTOM)); syncQueue(); }
@@ -2597,7 +2731,13 @@ function fmtDate(d){
 function todayStr(){ return fmtDate(new Date()); }
 function parseDate(s){ const p=s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
 function dayTasks(d){
-  const base = DATA.filter(r=>r.date===d).map(r=>{
+  // 全部后移的休息日：显示空卡片，标注休息日
+  const op = RESTOPS[d];
+  if(op && op.type === 'shift'){
+    return [{date:d, week:WEEKS[parseDate(d).getDay()], type:'休息日', stage:'', hours:0, done:'未开始', note:'', xc:'', sl:''}];
+  }
+  const bd = baseDateOf(d); // 显示日 d 对应的基础计划日期（支持整体平移）
+  const base = DATA.filter(r=>r.date===bd).map(r=>{
     // 移除被前移/后移走的基础任务（按文本移除第一条匹配）
     const rm = REMOVE[d]||{xc:[],sl:[]};
     const del = DELETED[d]||{xc:[],sl:[]};
@@ -2821,13 +2961,15 @@ function renderPlanList(){
     stages.forEach(st=>{
       const list = DATA.filter(r=>r.stage===st);
       if(!list.length) return;
-      html += '<details class="day-card" '+(st==='基础期'?'open':'')+' style="padding:0">' +
-        '<summary class="day-head" style="cursor:pointer;list-style:none">' +
-        '<div class="d" style="font-size:13px">'+st+'</div>' +
+      html += '<div class="stage-block open" style="padding:0">' +
+        '<div class="stage-head" style="cursor:pointer">' +
+        '<span class="stage-arrow">▾</span>' +
+        '<div class="d" style="font-size:14px;font-weight:700">'+st+'</div>' +
         '<div class="meta">'+list.length+' 天</div><div class="spacer"></div>' +
-        '</summary>';
+        '</div>' +
+        '<div class="stage-body">';
       list.forEach(r=>{ html += dayCardHTML(r.date, true); });
-      html += '</details>';
+      html += '</div></div>';
     });
   }
   el.innerHTML = html;
@@ -2887,6 +3029,59 @@ function bindCks(){
       }
     };
   });
+  // 阶段标题折叠：保持滚动位置
+  document.querySelectorAll('.stage-block > .stage-head').forEach(h=>{
+    h.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const block = h.parentElement;
+      const wasOpen = block.classList.contains('open');
+      const rect = h.getBoundingClientRect();
+      const viewportTop = rect.top;
+      if(wasOpen){
+        block.classList.remove('open');
+      } else {
+        block.classList.add('open');
+      }
+      requestAnimationFrame(()=>{
+        const newRect = h.getBoundingClientRect();
+        const diff = newRect.top - viewportTop;
+        window.scrollBy(0, diff);
+      });
+    });
+  });
+  // JS 实现阶段标题吸顶（兼容 OPPO 浏览器等不支持 sticky 的浏览器）
+  function stageSticky(){
+    const heads = document.querySelectorAll('.stage-block > .stage-head');
+    heads.forEach(h=>{
+      const block = h.parentElement;
+      const rect = block.getBoundingClientRect();
+      const headHeight = h.offsetHeight;
+      const topLimit = 62; // 导航栏高度
+      // 如果这个 block 的顶部已经滚过了顶部限制，且底部还在视口里，就固定标题
+      if(rect.top <= topLimit && rect.bottom > topLimit + headHeight){
+        if(!h.classList.contains('fixed')){
+          h.classList.add('fixed');
+          // 加一个占位高度，防止内容跳动
+          if(!h.nextElementSibling || !h.nextElementSibling.classList.contains('stage-spacer')){
+            const spacer = document.createElement('div');
+            spacer.className = 'stage-spacer';
+            spacer.style.height = headHeight + 'px';
+            block.insertBefore(spacer, h.nextElementSibling);
+          }
+        }
+      } else {
+        if(h.classList.contains('fixed')){
+          h.classList.remove('fixed');
+          const spacer = h.nextElementSibling;
+          if(spacer && spacer.classList.contains('stage-spacer')) spacer.remove();
+        }
+      }
+    });
+  }
+  window.addEventListener('scroll', stageSticky, {passive:true});
+  window.addEventListener('resize', stageSticky);
+  // 初始化
+  setTimeout(stageSticky, 100);
   document.querySelectorAll('.task .ck[data-date]').forEach(ck=>{
     ck.onclick = ()=> askDur(ck.dataset.date, ck.dataset.type, ck.dataset.txt);
   });
@@ -2945,6 +3140,23 @@ function confirmDur(){
   const wkMaskEl = document.getElementById('wkDetailMask');
   if(wkMaskEl && wkMaskEl.style.display==='flex'){
     openWeekDetail();
+  }
+  // 完成度检测：今天全部完成 → 提醒前移
+  if(p.date === todayStr()){
+    setTimeout(()=>{
+      const {total, done} = doneCountOf(todayStr());
+      if(total>0 && done>=total){
+        if(!localStorage.getItem('gk72_shiftFwdAsked_'+todayStr())){
+          localStorage.setItem('gk72_shiftFwdAsked_'+todayStr(), '1');
+          if(confirm('今天全部完成了！要不要把后面所有任务整体前移一天？')){
+            shiftForward(todayStr());
+            showToast('已前移一天，明天开始显示后一天的任务');
+          }
+        }
+      } else if(total>0 && done>=Math.floor(total*0.75)){
+        showToast('完成了大部分（'+done+'/'+total+'），可以考虑把明天的任务往前挪几条');
+      }
+    }, 400);
   }
 }
 /* ===== 补卡 ===== */
@@ -3663,8 +3875,8 @@ document.getElementById('planTabs').addEventListener('click', e=>{
 document.querySelectorAll('.tune button').forEach(b=>{
   b.onclick = ()=>{
     if(b.dataset.tune==='1'){ openAddPlan(); return; }
-    const tips = {2:'休息设置：在设置页可把任意日期设为休息日', 3:'机构60天任务已前移压缩至9.17-10.31完成'};
-    showToast(tips[b.dataset.tune]);
+    if(b.dataset.tune==='2'){ openRestMask(); return; }
+    if(b.dataset.tune==='3'){ openShiftMask(); return; }
   };
 });
 let apCat = '资料分析';
@@ -3705,8 +3917,353 @@ document.getElementById('apOk').onclick = ()=>{
   showToast('已添加到 '+d.slice(5));
 };
 
+/* ===== 休息设置弹窗 ===== */
+let _restPick = '';
+function renderRestList2(){
+  const wrap = document.getElementById('restList2');
+  if(!wrap) return;
+  if(!REST.length){ wrap.innerHTML = '<div style="color:var(--ink3);font-size:12px;text-align:center;padding:8px">暂无自定义休息日</div>'; return; }
+  wrap.innerHTML = REST.slice().sort().map(d=>{
+    const dt = parseDate(d);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">' +
+      '<span style="font-size:13px">'+(dt.getMonth()+1)+'月'+dt.getDate()+'日 '+WEEKS[dt.getDay()]+'</span>' +
+      '<button class="mv-btn" data-del-rest="'+d+'">取消休息</button></div>';
+  }).join('');
+  wrap.querySelectorAll('[data-del-rest]').forEach(b=>{
+    b.onclick = ()=>{
+      const d = b.dataset.delRest;
+      const op = RESTOPS[d];
+      if(op){
+        if(op.type === 'shift'){
+          SHIFT = SHIFT.filter(s=> !(s.from===d && s.days===1));
+          saveShift();
+        } else if(op.type === 'pick'){
+          op.moved.forEach(m=>{
+            if(CUSTOM[op.to]){
+              const i = CUSTOM[op.to][m.type].indexOf(m.text);
+              if(i>-1) CUSTOM[op.to][m.type].splice(i, 1);
+            }
+            delete MOVED[op.to+'|'+m.type+'|'+m.text];
+            if(REMOVE[d]){
+              const j = REMOVE[d][m.type].indexOf(m.text);
+              if(j>-1) REMOVE[d][m.type].splice(j, 1);
+            }
+          });
+          saveCustom(); saveMoved(); saveRemove();
+        }
+        delete RESTOPS[d];
+        saveRestOps();
+      }
+      REST = REST.filter(x=>x!==d);
+      saveRest();
+      renderRestList2();
+      refreshAll();
+      showToast('已取消 '+d.slice(5)+' 的休息日，任务已恢复');
+    };
+  });
+}
+function openRestMask(){
+  document.getElementById('restDate2').value = todayStr();
+  renderRestList2();
+  document.getElementById('restMask').style.display='flex';
+}
+document.getElementById('restCancel').onclick = ()=>{ document.getElementById('restMask').style.display='none'; };
+document.getElementById('restAdd2').onclick = ()=>{
+  const d = document.getElementById('restDate2').value;
+  if(!d || d<'2026-09-17' || d>='2026-11-30'){ showToast('请选择有效日期'); return; }
+  if(REST.includes(d)){ showToast('这一天已经是休息日了'); return; }
+  _restPick = d;
+  document.getElementById('restConfirmDate').textContent = (parseDate(d).getMonth()+1)+'月'+parseDate(d).getDate()+'日';
+  document.getElementById('restTaskListWrap').style.display = 'none';
+  document.getElementById('restConfirmOk').style.display = 'none';
+  document.getElementById('restShiftAll').style.display = 'block';
+  document.getElementById('restPickSome').style.display = 'block';
+  document.getElementById('restConfirmMask').style.display='flex';
+};
+document.getElementById('restConfirmCancel').onclick = ()=>{ document.getElementById('restConfirmMask').style.display='none'; };
+/* 全部后移一天：整体平移 */
+document.getElementById('restShiftAll').onclick = ()=>{
+  const d = _restPick;
+  SHIFT.push({from:d, days:1});
+  saveShift();
+  if(!REST.includes(d)){
+    REST.push(d);
+    saveRest();
+  }
+  RESTOPS[d] = {type:'shift', from:d};
+  saveRestOps();
+  document.getElementById('restConfirmMask').style.display='none';
+  document.getElementById('restMask').style.display='none';
+  refreshAll();
+  showToast('已设为休息日，后续任务整体后移一天');
+};
+/* 选部分任务移到明天 */
+document.getElementById('restPickSome').onclick = ()=>{
+  const d = _restPick;
+  document.getElementById('restShiftAll').style.display = 'none';
+  document.getElementById('restPickSome').style.display = 'none';
+  document.getElementById('restTaskListWrap').style.display = 'block';
+  document.getElementById('restConfirmOk').style.display = 'block';
+  // 列出当天所有任务
+  const rows = dayTasks(d);
+  const list = document.getElementById('restTaskList');
+  let html = '';
+  rows.forEach(r=>{
+    splitTasks(r.xc).forEach(t=>{
+      html += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer">' +
+        '<input type="checkbox" class="rest-task-cb" data-date="'+d+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" checked style="margin-top:3px">' +
+        '<span style="font-size:12px"><span style="background:'+catColor(t.cat)+';color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;margin-right:4px">'+t.cat+'</span>'+t.txt+'</span></label>';
+    });
+    splitTasks(r.sl).forEach(t=>{
+      html += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer">' +
+        '<input type="checkbox" class="rest-task-cb" data-date="'+d+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" checked style="margin-top:3px">' +
+        '<span style="font-size:12px"><span style="background:'+catColor(t.cat)+';color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;margin-right:4px">'+t.cat+'</span>'+t.txt+'</span></label>';
+    });
+  });
+  list.innerHTML = html || '<div style="color:var(--ink3);font-size:12px;text-align:center;padding:8px">当天没有任务</div>';
+};
+document.getElementById('restSelAll').onclick = ()=>{ document.querySelectorAll('.rest-task-cb').forEach(cb=>cb.checked=true); };
+document.getElementById('restSelNone').onclick = ()=>{ document.querySelectorAll('.rest-task-cb').forEach(cb=>cb.checked=false); };
+document.getElementById('restConfirmOk').onclick = ()=>{
+  const d = _restPick;
+  const tomorrow = fmtDate(new Date(parseDate(d).getTime() + 86400000));
+  const moved = [];
+  document.querySelectorAll('.rest-task-cb').forEach(cb=>{
+    const date = cb.dataset.date, type = cb.dataset.type, text = cb.dataset.txt;
+    if(cb.checked){
+      moveTask(date, type, text, tomorrow);
+      moved.push({type, text});
+    }
+  });
+  RESTOPS[d] = {type:'pick', moved, from:d, to:tomorrow};
+  saveRestOps();
+  if(!REST.includes(d)){
+    REST.push(d);
+    saveRest();
+  }
+  document.getElementById('restConfirmMask').style.display='none';
+  document.getElementById('restMask').style.display='none';
+  refreshAll();
+  showToast('已设为休息日，勾选的任务移到明天');
+};
+
+/* ===== 计划前移弹窗 ===== */
+function openShiftMask(){
+  document.getElementById('shiftDate').value = todayStr();
+  document.getElementById('shiftTaskWrap').style.display = 'none';
+  document.getElementById('shiftOk').style.display = 'none';
+  // 默认目标日期是明天（今天的后一天）
+  const tomorrow = fmtDate(new Date(parseDate(todayStr()).getTime() + 86400000));
+  document.getElementById('shiftTargetDate').value = tomorrow;
+  renderAllMoved();
+  document.getElementById('shiftMask').style.display='flex';
+  // 默认日期（今天）也立即加载任务列表，否则默认选中的今天不显示任务、无法移动
+  const d = todayStr();
+  if(d > '2026-09-17' && d < '2026-11-30'){
+    document.getElementById('shiftDate').onchange();
+  }
+}
+/* 弹窗点遮罩层关闭 */
+document.querySelectorAll('.modal-mask').forEach(mask=>{
+  mask.addEventListener('click', (e)=>{
+    if(e.target === mask){
+      mask.style.display = 'none';
+    }
+  });
+});
+
+/* 渲染所有移动记录（按日期分组折叠） */
+function renderAllMoved(){
+  const wrap = document.getElementById('shiftAllList');
+  const movedKeys = Object.keys(MOVED);
+  if(!movedKeys.length){
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:12px;text-align:center;padding:8px">还没有移动过任务</div>';
+    return;
+  }
+  // 遍历 MOVED，找 fromDate
+  const list = movedKeys.map(k=>{
+    const [toDate, type, text] = k.split('|');
+    let fromDate = '';
+    Object.keys(REMOVE).forEach(date=>{
+      if(REMOVE[date][type] && REMOVE[date][type].includes(text)){
+        fromDate = date;
+      }
+    });
+    return {toDate, fromDate, type, text, key:k};
+  }).filter(m=>m.fromDate);
+  if(!list.length){
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:12px;text-align:center;padding:8px">还没有移动过任务</div>';
+    return;
+  }
+  // 按 toDate 分组
+  const groups = {};
+  list.forEach(m=>{
+    if(!groups[m.toDate]) groups[m.toDate] = [];
+    groups[m.toDate].push(m);
+  });
+  // 渲染分组折叠
+  // 记录当前已展开的分组，重渲染后保持展开（移回原位后还能继续点其他任务）
+  const openGroups = new Set();
+  wrap.querySelectorAll('details[open]').forEach(dt=>{
+    const gd = dt.getAttribute('data-gdate');
+    if(gd) openGroups.add(gd);
+  });
+  wrap.innerHTML = Object.keys(groups).sort().map(toDate=>{
+    const items = groups[toDate];
+    const fromDates = [...new Set(items.map(i=>i.fromDate))];
+    const fromLabel = fromDates.map(d=>d.slice(5)).join('、');
+    return '<details'+(openGroups.has(toDate)?' open':'')+' data-gdate="'+toDate+'" style="border-bottom:1px solid var(--line)">' +
+      '<summary style="padding:8px 0;cursor:pointer;list-style:none;font-size:12px;color:var(--ink)">' +
+      '<span style="color:var(--ink2)">▸</span> '+toDate.slice(5)+'（'+items.length+'个任务 来自 '+fromLabel+'）' +
+      '</summary>' +
+      '<div style="padding-left:16px;padding-bottom:8px">' +
+        items.map(m=>{
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)">' +
+            '<div style="flex:1;min-width:0;font-size:12px;color:var(--ink)">'+m.text+'</div>' +
+            '<button class="mv-btn" data-restore-key="'+m.key.replace(/"/g,'&quot;')+'">移回原位</button>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</details>';
+  }).join('');
+  wrap.querySelectorAll('[data-restore-key]').forEach(b=>{
+    b.onclick = ()=>{
+      const k = b.dataset.restoreKey;
+      const [toDate, type, text] = k.split('|');
+      let fromDate = '';
+      Object.keys(REMOVE).forEach(date=>{
+        if(REMOVE[date][type] && REMOVE[date][type].includes(text)){
+          fromDate = date;
+        }
+      });
+      if(!fromDate){ showToast('找不到原位置'); return; }
+      // 记录列表滚动位置
+      const scrollTop = document.getElementById('shiftAllList').scrollTop;
+      if(CUSTOM[toDate]){
+        const i = CUSTOM[toDate][type].indexOf(text);
+        if(i>-1) CUSTOM[toDate][type].splice(i, 1);
+      }
+      delete MOVED[k];
+      if(REMOVE[fromDate]){
+        const j = REMOVE[fromDate][type].indexOf(text);
+        if(j>-1) REMOVE[fromDate][type].splice(j, 1);
+      }
+      saveCustom(); saveMoved(); saveRemove();
+      refreshAll();
+      renderAllMoved();
+      // 重新获取列表元素，恢复滚动位置
+      requestAnimationFrame(()=>{
+        document.getElementById('shiftAllList').scrollTop = scrollTop;
+      });
+      showToast('已移回 '+fromDate.slice(5));
+    };
+  });
+}
+document.getElementById('shiftCancel').onclick = ()=>{ document.getElementById('shiftMask').style.display='none'; };
+document.getElementById('shiftDate').onchange = function(){
+  const d = this.value.replace(/\//g, '-');
+  this.value = d; // 统一成横杠格式
+  if(!d || d<='2026-09-17' || d>='2026-11-30'){ showToast('请选有效日期'); return; }
+  // 先显示任务列表区域，确保不会因为后面出错而不显示
+  document.getElementById('shiftTaskWrap').style.display = 'block';
+  document.getElementById('shiftOk').style.display = 'block';
+  try {
+  // 计划移动里直接按显示日取基础计划任务，不做平移，不过滤REMOVE，确保一定有任务
+  const base = DATA.filter(r=>r.date===d)[0] || {xc:'', sl:''};
+  const del = DELETED[d]||{xc:[],sl:[]};
+  const xcList = (base.xc||'').split('\n').filter(Boolean);
+  const slList = (base.sl||'').split('\n').filter(Boolean);
+  const rmOne = (list, target)=>{
+    const i = target && list.indexOf(target);
+    if(i>-1) list.splice(i,1);
+    return list;
+  };
+  del.xc.forEach(t=>rmOne(xcList, t));
+  del.sl.forEach(t=>rmOne(slList, t));
+  // 加上自定义任务
+  const cust = CUSTOM[d];
+  if(cust && cust.xc) cust.xc.forEach(t=>xcList.push(t));
+  if(cust && cust.sl) cust.sl.forEach(t=>slList.push(t));
+  const list = document.getElementById('shiftTaskList');
+  let html = '';
+  splitTasks(xcList.join('\n')).forEach(t=>{
+    html += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer">' +
+      '<input type="checkbox" class="shift-task-cb" data-date="'+d+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" checked style="margin-top:3px">' +
+      '<span style="font-size:12px"><span style="background:'+catColor(t.cat)+';color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;margin-right:4px">'+t.cat+'</span>'+t.txt+'</span></label>';
+  });
+  splitTasks(slList.join('\n')).forEach(t=>{
+    html += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer">' +
+      '<input type="checkbox" class="shift-task-cb" data-date="'+d+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" checked style="margin-top:3px">' +
+      '<span style="font-size:12px"><span style="background:'+catColor(t.cat)+';color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;margin-right:4px">'+t.cat+'</span>'+t.txt+'</span></label>';
+  });
+  list.innerHTML = html || '<div style="color:var(--ink3);font-size:12px;text-align:center;padding:8px">当天没有任务</div>';
+  } catch(e) {
+    document.getElementById('shiftTaskList').innerHTML = '<div style="color:red;font-size:12px;text-align:center;padding:8px">加载出错：'+e.message+'</div>';
+  }
+  // 显示被移进来的任务（已去掉这个区域，撤销功能放到最下面的所有移动记录里了）
+  /*
+  const movedWrap = document.getElementById('shiftMovedWrap');
+  const movedList = document.getElementById('shiftMovedList');
+  const movedIn = Object.keys(MOVED).filter(k=>k.startsWith(d+'|'));
+  movedList.innerHTML = movedIn.length ? movedIn.map(k=>{
+    const [, type, text] = k.split('|');
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)">' +
+      '<span style="font-size:12px;color:var(--ink2)">'+text+'</span>' +
+      '<button class="mv-btn" data-unshift-date="'+d+'" data-unshift-type="'+type+'" data-unshift-txt="'+text.replace(/"/g,'&quot;')+'">移回原位</button></div>';
+  }).join('') : '<div style="color:var(--ink3);font-size:12px;text-align:center;padding:8px">没有从别处移进来的任务</div>';
+  movedList.querySelectorAll('[data-unshift-date]').forEach(b=>{
+    b.onclick = ()=>{
+      const from = b.dataset.unshiftDate, type = b.dataset.unshiftType, text = b.dataset.unshiftTxt;
+      let origDate = '';
+      Object.keys(REMOVE).forEach(date=>{
+        if(REMOVE[date][type] && REMOVE[date][type].includes(text)){
+          origDate = date;
+        }
+      });
+      if(!origDate){ showToast('找不到原位置'); return; }
+      if(CUSTOM[from]){
+        const i = CUSTOM[from][type].indexOf(text);
+        if(i>-1) CUSTOM[from][type].splice(i, 1);
+      }
+      delete MOVED[from+'|'+type+'|'+text];
+      if(REMOVE[origDate]){
+        const j = REMOVE[origDate][type].indexOf(text);
+        if(j>-1) REMOVE[origDate][type].splice(j, 1);
+      }
+      saveCustom(); saveMoved(); saveRemove();
+      refreshAll();
+      showToast('已移回 '+origDate.slice(5));
+      document.getElementById('shiftDate').onchange();
+    };
+  });
+  movedWrap.style.display = 'block';
+  */
+  document.getElementById('shiftTaskWrap').style.display = 'block';
+  document.getElementById('shiftOk').style.display = 'block';
+  // 目标日期默认设为源日期的后一天
+  const nextDay = fmtDate(new Date(parseDate(d).getTime() + 86400000));
+  document.getElementById('shiftTargetDate').value = nextDay;
+};
+document.getElementById('shiftSelAll').onclick = ()=>{ document.querySelectorAll('.shift-task-cb').forEach(cb=>cb.checked=true); };
+document.getElementById('shiftSelNone').onclick = ()=>{ document.querySelectorAll('.shift-task-cb').forEach(cb=>cb.checked=false); };
+document.getElementById('shiftOk').onclick = ()=>{
+  const d = document.getElementById('shiftDate').value;
+  const target = document.getElementById('shiftTargetDate').value;
+  const checked = document.querySelectorAll('.shift-task-cb:checked');
+  if(!checked.length){ showToast('请至少勾选一个任务'); return; }
+  if(!target || target < '2026-09-17' || target > '2026-11-29'){ showToast('请选有效目标日期'); return; }
+  let count = 0;
+  checked.forEach(cb=>{
+    moveTask(cb.dataset.date, cb.dataset.type, cb.dataset.txt, target);
+    count++;
+  });
+  document.getElementById('shiftMask').style.display='none';
+  refreshAll();
+  showToast('已前移 '+count+' 个任务到 '+target.slice(5));
+};
+
 /* ===== 数据备份 ===== */
-const BK_KEYS = [CFG_KEY, CUSTOM_KEY, REST_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, NODES_KEY, EXAMLOG_KEY, SZ_KEY, SS_KEY, DUR_KEY, LS_KEY, COLORS_KEY, LASTDUR_KEY, TIMER_KEY];
+const BK_KEYS = [CFG_KEY, CUSTOM_KEY, REST_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, NODES_KEY, EXAMLOG_KEY, SZ_KEY, SS_KEY, DUR_KEY, LS_KEY, COLORS_KEY, LASTDUR_KEY, TIMER_KEY, SHIFT_KEY, RESTOPS_KEY];
 function exportBackup(){
   const data = {};
   BK_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) data[k]=v; });
