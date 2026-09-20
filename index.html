@@ -1967,7 +1967,7 @@ function hsvToHex(h,s,v){
     else setHue(e.clientX-r.left, false);
   };
   const up = ()=>{
-    if(dragMode){ dragMode=null; onPick(true); }
+    if(dragMode){ dragMode=null; onPick(false); } // 松手也只更新预览，不真正生效，点保存才生效
   };
   panel.addEventListener('pointermove', move);
   hue.addEventListener('pointermove', move);
@@ -2592,10 +2592,15 @@ function initThemePicker(initColor){
   }
   function onPick(apply){
     const color = hsvToHex(cur.h, cur.s, cur.v);
-    COLORS.primary = color;
-    applyTheme();
-    sync(color);
+    // 只更新预览，不改变实际主题色，点保存才生效
+    const pv = document.getElementById('thPreview');
+    if(pv) pv.style.background = color;
+    const hx = document.getElementById('thHex');
+    if(hx) hx.value = color;
     if(apply){
+      // 点保存时才真正生效
+      COLORS.primary = color;
+      applyTheme();
       localStorage.setItem(COLORS_KEY, JSON.stringify(COLORS));
       showToast('主题色已更新');
     }
@@ -2635,7 +2640,7 @@ function initThemePicker(initColor){
     else setHue(e.clientX-r.left, false);
   };
   const up = ()=>{
-    if(dragMode){ dragMode=null; onPick(true); }
+    if(dragMode){ dragMode=null; onPick(false); } // 松手也只更新预览，不真正生效，点保存才生效
   };
   panel.addEventListener('pointermove', move);
   hue.addEventListener('pointermove', move);
@@ -2649,11 +2654,9 @@ function initThemePicker(initColor){
     const v = e.target.value.trim();
     if(!/^#[0-9a-fA-F]{6}$/.test(v)){ e.target.style.borderColor='#D64545'; return; }
     e.target.style.borderColor='';
-    COLORS.primary = v;
-    applyTheme();
-    sync(v);
-    localStorage.setItem(COLORS_KEY, JSON.stringify(COLORS));
-    showToast('主题色已更新');
+    // 只更新预览，不真正生效，点保存才生效
+    const pv = document.getElementById('thPreview');
+    if(pv) pv.style.background = v;
   });
   document.getElementById('thHex').addEventListener('blur', e=>{ e.target.style.borderColor=''; });
 }
@@ -3459,13 +3462,27 @@ function confirmDelete(){
   if(!pendingDel) return;
   const {date, type, text} = pendingDel;
   document.getElementById('delMask').style.display = 'none';
-  // 若在 CUSTOM（含移动来的）→ 从 CUSTOM 删，并清理所有 REMOVE/MOVED 记录
-  if(CUSTOM[date] && (CUSTOM[date][type]||[]).includes(text)){
-    CUSTOM[date][type] = (CUSTOM[date][type]||[]).filter(t=>t!==text);
-    if(!CUSTOM[date].xc.length && !CUSTOM[date].sl.length) delete CUSTOM[date];
-    for(const dd in REMOVE){ REMOVE[dd][type] = (REMOVE[dd][type]||[]).filter(t=>t!==text); if(!REMOVE[dd].xc.length && !REMOVE[dd].sl.length) delete REMOVE[dd]; }
-    delete MOVED[date+'|'+type+'|'+text];
-    saveCustom(); saveRemove(); saveMoved();
+  // 自定义任务：遍历 CUSTOM，用 splitTasks 解析后比较 txt，找到实际存储的完整文本
+  if(CUSTOM[date] && CUSTOM[date][type]){
+    const fullText = CUSTOM[date][type].find(item=>{
+      const parsed = splitTasks(item)[0];
+      return parsed && parsed.txt === text;
+    });
+    if(fullText){
+      CUSTOM[date][type] = CUSTOM[date][type].filter(t=>t!==fullText);
+      if(!CUSTOM[date].xc.length && !CUSTOM[date].sl.length) delete CUSTOM[date];
+      for(const dd in REMOVE){ REMOVE[dd][type] = (REMOVE[dd][type]||[]).filter(t=>{
+        const parsed = splitTasks(t)[0];
+        return !(parsed && parsed.txt === text);
+      }); if(!REMOVE[dd].xc.length && !REMOVE[dd].sl.length) delete REMOVE[dd]; }
+      delete MOVED[date+'|'+type+'|'+fullText];
+      saveCustom(); saveRemove(); saveMoved();
+    } else {
+      // 基础任务 → 删除标记
+      if(!DELETED[date]) DELETED[date] = {xc:[], sl:[]};
+      if(!DELETED[date][type].includes(text)) DELETED[date][type].push(text);
+      saveDeleted();
+    }
   } else {
     // 基础任务 → 删除标记
     if(!DELETED[date]) DELETED[date] = {xc:[], sl:[]};
