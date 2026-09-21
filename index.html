@@ -3180,7 +3180,9 @@ function askDur(date, type, text){
   // 已完成的点一下 = 取消完成，并移除该任务用时
   if(doneMap[k]){
     delete doneMap[k];
-    delTaskDur(date, type, text);
+    // 取消完成时：如果是补做过去的任务，时长记在今天，从今天删
+    const durDate = (date < todayStr()) ? todayStr() : date;
+    delTaskDur(durDate, type, text);
     saveDone();
     refreshAll();
     showToast('已取消完成，并移除该任务用时');
@@ -3205,7 +3207,12 @@ function confirmDur(){
   const hours = (!(v>=0) || isNaN(v)) ? 0 : Math.min(Math.round(v*2)/2, 24);
   doneMap[p.date+'|'+p.type+'|'+p.text] = true;
   saveDone();
-  if(hours>0){ setTaskDur(p.date, p.type, p.text, hours); localStorage.setItem(LASTDUR_KEY, String(hours)); }
+  if(hours>0){ 
+    // 补做过去的任务（拖延计划），时长记到今天；今天的任务记到今天
+    const durDate = (p.date < todayStr()) ? todayStr() : p.date;
+    setTaskDur(durDate, p.type, p.text, hours); 
+    localStorage.setItem(LASTDUR_KEY, String(hours)); 
+  }
   refreshAll();
   showToast(hours>0 ? '已完成，用时 '+hours+'h' : '已完成');
   // 如果是从本周明细补的，就地刷新弹窗并保留当前 tab
