@@ -1395,6 +1395,10 @@ let DELETED = {}; try{ DELETED = JSON.parse(localStorage.getItem(DELETED_KEY)||'
 let SHIFT = []; try{ SHIFT = JSON.parse(localStorage.getItem(SHIFT_KEY)||'[]'); }catch(e){}
 /* 休息日操作记录：{date: {moved:[{type,text}], deleted:[{type,text}], from, to}} */
 let RESTOPS = {}; try{ RESTOPS = JSON.parse(localStorage.getItem(RESTOPS_KEY)||'{}'); }catch(e){}
+/* 格式迁移：把旧的斜杠格式日期（2026/09/20）统一转成横杠（2026-09-20） */
+REST = REST.map(d=> d.replace(/\//g,'-'));
+SHIFT = SHIFT.map(s=> ({...s, from: s.from.replace(/\//g,'-')}));
+RESTOPS = Object.fromEntries(Object.entries(RESTOPS).map(([k,v])=>[k.replace(/\//g,'-'), v]));
 /* 版本迁移：自动清掉旧的休息日平移数据和测试期间的移动记录 */
 const SHIFT_VER = 'v3_20260920';
 if(localStorage.getItem('gk72_shift_ver') !== SHIFT_VER){
@@ -2847,15 +2851,13 @@ function moveTask(date, type, text, toDate){
 }
 function isRestDay(date){
   if(REST.includes(date)) return true;
-  if(CFG.sundayRest && date>='2026-09-17' && date<='2026-11-30'){
-    const d = parseDate(date);
-    if(d.getDay()===0) return true;
-  }
+  // 兼容斜杠格式
+  const slashes = date.replace(/-/g,'/');
+  if(REST.includes(slashes)) return true;
   return false;
 }
 function effectiveType(r, date){
   if(r.stage==='考试日') return r.type;
-  if(isRestDay(date) && !r.xc && !r.sl) return '周日休息';
   return r.type;
 }
 function doneCountOf(date){
@@ -2865,6 +2867,11 @@ function doneCountOf(date){
     splitTasks(r.xc).forEach(t=>{ total++; if(isDone(date,'xc',t.txt)) done++; });
     splitTasks(r.sl).forEach(t=>{ total++; if(isDone(date,'sl',t.txt)) done++; });
   });
+  // 休息日自动加的"今日休息"任务
+  if(isRestDay(date)){
+    total++;
+    if(isDone(date,'xc','今日休息')) done++;
+  }
   return {total, done};
 }
 function dayStatus(date){
@@ -2899,7 +2906,6 @@ function dayCardHTML(date, fold, delay, over){
   const {total, done} = doneCountOf(date);
   const xcTasks = splitTasks(r.xc);
   const slTasks = splitTasks(r.sl);
-  const isRest = effectiveType(r, date)==='周日休息';
   const canCkAll = date < todayStr() && st!=='done' && total>0;
   let html = '<div class="day-card'+(fold?' day-fold':'')+(delay?' delay-marked':'')+(over?' over-limit':'')+'">';
   if(over){
@@ -2912,14 +2918,19 @@ function dayCardHTML(date, fold, delay, over){
     (fold? '<span class="fold-arrow'+(st==='done'?' closed':'')+'"></span>':'') +
     '<div class="d">'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'</div>' +
     (delay? '<span class="delay-tag">待补</span>':'') +
-    '<div class="meta">'+WEEKS[d.getDay()]+' · '+effectiveType(r, date)+' · '+r.hours+'h'+(total?' · '+done+'/'+total+'':'')+'</div>' +
+    '<div class="meta">'+WEEKS[d.getDay()]+' · '+r.hours+'h'+(total?' · '+done+'/'+total+'':'')+'</div>' +
     '<div class="spacer"></div>' + (canCkAll? '<button class="bk-btn" data-bk="'+date+'">补打全部</button>':'') + stageChip(r.stage) + statusChip(st) +
   '</div>';
   if(fold) html += '<div class="day-body'+(st==='done'?' hide':'')+'">';
-  if(isRest && !r.xc){
-    html += '<div class="task"><div class="bd"><span class="txt" style="color:var(--ink2)">周日休息：复盘本周完成情况，规划下周重点</span></div></div>';
-  } else {
-    xcTasks.forEach(t=>{
+  // 休息日自动加一个"今日休息"任务
+  if(isRestDay(date)){
+    const dk = isDone(date,'xc','今日休息');
+    html += '<div class="task'+(dk?' done':'')+'">' +
+      '<div class="ck" data-date="'+date+'" data-type="xc" data-txt="今日休息"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
+      '<div class="bd"><span class="cat" style="background:#999">休息</span><span class="txt">今日休息，好好放松～</span></div>' +
+    '</div>';
+  }
+  xcTasks.forEach(t=>{
       const dk = isDone(date,'xc',t.txt);
       const mv = MOVED[date+'|xc|'+t.txt] ? ' moved' : '';
       html += '<div class="task'+mv+(dk?' done':'')+'">' +
@@ -2940,7 +2951,6 @@ function dayCardHTML(date, fold, delay, over){
       });
       html += '</div>';
     }
-  }
   if(fold) html += '</div>';
   html += '</div>';
   return html;
@@ -2951,8 +2961,14 @@ let planTab = 'today';
 /* 拖延预警：统计未补天数与最长积压天数，按严重程度分级 */
 function delayStats(){
   const now = todayStr();
-  const restRow = r=> !r.xc && !r.sl && isRestDay(r.date);
-  const days = DATA.filter(r=> r.date < now && !restRow(r) && dayStatus(r.date)!=='done' && !REST.includes(r.date)).map(r=>r.date);
+  const days = DATA.filter(r=> {
+    if(r.date >= now) return false;
+    if(dayStatus(r.date)==='done') return false;
+    // 排除手动休息日（兼容斜杠/横杠两种格式）
+    if(REST.includes(r.date)) return false;
+    if(REST.includes(r.date.replace(/-/g,'/'))) return false;
+    return true;
+  }).map(r=>r.date);
   const uniq = [...new Set(days)];
   if(!uniq.length) return {n:0, days:0};
   let d = 0;
@@ -2995,7 +3011,14 @@ function renderPlanList(){
     html += delayWarnHTML();
     const ds = delayStats();
     if(ds.n){
-      const delayedList = DATA.filter(r=> r.date < now && dayStatus(r.date)!=='done' && !REST.includes(r.date))
+      const delayedList = DATA.filter(r=> {
+        if(r.date >= now) return false;
+        if(dayStatus(r.date)==='done') return false;
+        // 排除手动休息日（兼容斜杠/横杠两种格式）
+        if(REST.includes(r.date)) return false;
+        if(REST.includes(r.date.replace(/-/g,'/'))) return false;
+        return true;
+      })
                               .sort((a,b)=>a.date<b.date?-1:1);
       html += '<div class="delay-fold" id="delayFold">'+
         '<div class="delay-fold-head" id="delayFoldHead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><span>待补任务（'+ds.n+' 天）</span><span class="delay-fold-arrow">▸</span></div>'+
@@ -4156,7 +4179,7 @@ document.getElementById('restAdd2').onclick = ()=>{
   const d = document.getElementById('restDate2').value;
   if(!d || d<'2026-09-17' || d>='2026-11-30'){ showToast('请选择有效日期'); return; }
   if(REST.includes(d)){ showToast('这一天已经是休息日了'); return; }
-  _restPick = d;
+  _restPick = d.replace(/\//g, '-');
   document.getElementById('restConfirmDate').textContent = (parseDate(d).getMonth()+1)+'月'+parseDate(d).getDate()+'日';
   document.getElementById('restTaskListWrap').style.display = 'none';
   document.getElementById('restConfirmOk').style.display = 'none';
@@ -4718,7 +4741,8 @@ document.getElementById('durSkip').onclick = ()=>{
   refreshAll();
   showToast('已完成（未记时长）');
 };
-document.getElementById('durInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmDur(); } });
+document.getElementById('durHour').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmDur(); } });
+document.getElementById('durMin').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmDur(); } });
 document.getElementById('colorSave').onclick = saveColors;
 document.getElementById('nodeMore').onclick = ()=> go('settings');document.getElementById('colorReset').onclick = resetColors;
 document.getElementById('nodesSave').onclick = saveNodesForm;
