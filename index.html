@@ -1201,8 +1201,10 @@ body.narrow .tune{gap:10px!important}
         <button class="dur-q dur-skip" id="durSkip" type="button">免时长打卡</button>
       </div>
       <div class="dur-input-row">
-        <input type="number" class="modal-date" id="durInput" step="0.5" min="0" max="24" placeholder="或用时（小时）">
-        <span class="dur-unit">小时</span>
+        <input type="number" class="modal-date" id="durHour" step="1" min="0" max="24" placeholder="时">
+        <span class="dur-unit">时</span>
+        <input type="number" class="modal-date" id="durMin" step="5" min="0" max="59" placeholder="分" style="margin-left:8px">
+        <span class="dur-unit">分</span>
       </div>
     </div>
     <div class="modal-btns">
@@ -2950,9 +2952,8 @@ let planTab = 'today';
 function delayStats(){
   const now = todayStr();
   const restRow = r=> !r.xc && !r.sl && isRestDay(r.date);
-  const days = DATA.filter(r=> r.date < now && !restRow(r) && dayStatus(r.date)!=='done').map(r=>r.date);
-  const daysR = DATA.filter(r=> r.date < now && restRow(r) && dayStatus(r.date)!=='done').map(r=>r.date);
-  const uniq = [...new Set([...days, ...daysR])];
+  const days = DATA.filter(r=> r.date < now && !restRow(r) && dayStatus(r.date)!=='done' && !REST.includes(r.date)).map(r=>r.date);
+  const uniq = [...new Set(days)];
   if(!uniq.length) return {n:0, days:0};
   let d = 0;
   const nowTS = Date.parse(now+'T00:00:00');
@@ -2994,7 +2995,7 @@ function renderPlanList(){
     html += delayWarnHTML();
     const ds = delayStats();
     if(ds.n){
-      const delayedList = DATA.filter(r=> r.date < now && dayStatus(r.date)!=='done')
+      const delayedList = DATA.filter(r=> r.date < now && dayStatus(r.date)!=='done' && !REST.includes(r.date))
                               .sort((a,b)=>a.date<b.date?-1:1);
       html += '<div class="delay-fold" id="delayFold">'+
         '<div class="delay-fold-head" id="delayFoldHead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><span>待补任务（'+ds.n+' 天）</span><span class="delay-fold-arrow">▸</span></div>'+
@@ -3223,7 +3224,10 @@ function askDur(date, type, text){
     delete doneMap[k];
     // 取消完成时：如果是补做过去的任务，时长记在今天，从今天删
     const durDate = (date < todayStr()) ? todayStr() : date;
-    delTaskDur(durDate, type, text);
+    const displayText = (date < todayStr()) 
+      ? '[补自'+date.slice(5).replace('-','/')+'] '+text 
+      : text;
+    delTaskDur(durDate, type, displayText);
     saveDone();
     refreshAll();
     showToast('已取消完成，并移除该任务用时');
@@ -3232,26 +3236,36 @@ function askDur(date, type, text){
   pendingDur = {date, type, text};
   document.getElementById('durTask').textContent = text;
   const last = parseFloat(localStorage.getItem(LASTDUR_KEY)||'');
-  document.getElementById('durInput').value = (last>=0 && !isNaN(last)) ? last : '';
+  // 上次时长（小时）拆成时和分填进去
+  const lastH = last>=0 && !isNaN(last) ? Math.floor(last) : '';
+  const lastM = last>=0 && !isNaN(last) ? Math.round((last - Math.floor(last))*60) : '';
+  document.getElementById('durHour').value = lastH;
+  document.getElementById('durMin').value = lastM;
   document.querySelectorAll('#durQuick .dur-q').forEach(b=>{
-    b.classList.toggle('sel', b.dataset.h && b.dataset.h === String(last));
+    b.classList.toggle('sel', b.dataset.h && Math.abs(parseFloat(b.dataset.h) - last) < 0.01);
   });
   document.getElementById('durMask').style.display = 'flex';
-  setTimeout(()=>document.getElementById('durInput').focus(), 60);
+  setTimeout(()=>document.getElementById('durHour').focus(), 60);
 }
 function confirmDur(){
   if(!pendingDur) return;
   const p = pendingDur;
-  const v = parseFloat(document.getElementById('durInput').value);
+  const h = parseInt(document.getElementById('durHour').value)||0;
+  const m = parseInt(document.getElementById('durMin').value)||0;
+  const v = h + m/60;
   document.getElementById('durMask').style.display = 'none';
   pendingDur = null;
-  const hours = (!(v>=0) || isNaN(v)) ? 0 : Math.min(Math.round(v*2)/2, 24);
+  const hours = (!(v>=0) || isNaN(v)) ? 0 : Math.min(Math.round(v*10)/10, 24);
   doneMap[p.date+'|'+p.type+'|'+p.text] = true;
   saveDone();
   if(hours>0){ 
     // 补做过去的任务（拖延计划），时长记到今天；今天的任务记到今天
     const durDate = (p.date < todayStr()) ? todayStr() : p.date;
-    setTaskDur(durDate, p.type, p.text, hours); 
+    // 补做的任务，在任务名前加"补自MM/DD"标记，避免和今天同名任务混淆
+    const displayText = (p.date < todayStr()) 
+      ? '[补自'+p.date.slice(5).replace('-','/')+'] '+p.text 
+      : p.text;
+    setTaskDur(durDate, p.type, displayText, hours); 
     localStorage.setItem(LASTDUR_KEY, String(hours)); 
   }
   refreshAll();
@@ -4689,7 +4703,9 @@ document.querySelectorAll('#durQuick .dur-q').forEach(b=>{
   b.onclick = ()=>{
     document.querySelectorAll('#durQuick .dur-q').forEach(x=>x.classList.remove('sel'));
     b.classList.add('sel');
-    document.getElementById('durInput').value = b.dataset.h;
+    const h = parseFloat(b.dataset.h)||0;
+    document.getElementById('durHour').value = Math.floor(h);
+    document.getElementById('durMin').value = Math.round((h - Math.floor(h))*60);
   };
 });
 document.getElementById('durSkip').onclick = ()=>{
