@@ -1671,8 +1671,49 @@ function openSsDetail(d){
     html+='<div class="ssd-row"><span class="ssd-name">'+it.name+'</span><span class="ssd-mid">对 '+r+'/'+v.t+' · '+r2+'%</span><span class="ssd-time">'+(v.u? fmtMMSS(v.u):'')+'</span><span class="ssd-hit '+cls+'">'+gt+'</span></div>';
   });
   html+='<div style="font-size:10.5px;color:var(--ink2);margin-top:8px">达标线：两位数×一位数≤1.5分 · 两位数加减≤2分 · 三位数加减≤3分 · 多位÷两位≤1分 · 多位÷三位≤4分 · 四位数除法优秀≤4分/及格≤6分</div>';
+  html+='<div style="margin-top:14px;display:flex;gap:10px;justify-content:center">'
+    +'<button id="ssDetailEdit" style="background:var(--primary);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px">编辑此条</button>'
+    +'<button id="ssDetailDel" style="background:#fee;border:1px solid var(--line);color:#c33;padding:8px 16px;border-radius:8px;font-size:13px">删除此条</button>'
+    +'</div>';
   document.getElementById('ssDetailBody').innerHTML = hasRow ? html : '<div style="font-size:12px;color:var(--ink2);padding:4px 0">这条记录没有明细数据</div>';
   document.getElementById('ssDetailMask').style.display='flex';
+  // 编辑按钮：把这条记录填回表单
+  document.getElementById('ssDetailEdit').onclick=()=>{
+    document.getElementById('ssDetailMask').style.display='none';
+    // 展开速算表单
+    const formCard=document.querySelector('.fold-card[data-fold="ssForm"]');
+    if(formCard && formCard.classList.contains('collapsed')){
+      formCard.classList.remove('collapsed');
+    }
+    // 切到模考页
+    go('examlog');
+    // 填日期
+    const sd=document.getElementById('ssDate');
+    if(sd) sd.value=d;
+    // 填数据
+    clearSuanForm();
+    SS_ITEMS.forEach(it=>{
+      const v=e.items&&e.items[it.key];
+      if(!v) return;
+      const w=document.getElementById('ssw_'+it.key), m=document.getElementById('ssm_'+it.key), s=document.getElementById('sss_'+it.key), t=document.getElementById('sst_'+it.key);
+      const right = v.r!=null ? v.r : (v.t-(v.w||0));
+      if(w) w.value = v.t - right; // 错题数 = 总题数 - 对题数
+      if(t) t.value = v.t;
+      if(m) m.value = Math.floor((v.u||0)/60);
+      if(s) s.value = ((v.u||0)%60).toFixed(1);
+    });
+    if(typeof suanSumTime==='function') suanSumTime();
+    showToast('已载入 '+d.slice(5)+' 的记录，改完点"保存速算记录"即可覆盖');
+  };
+  // 删除按钮
+  document.getElementById('ssDetailDel').onclick=()=>{
+    if(confirm('确定删除 '+d.slice(5)+' 的速算记录吗？')){
+      delete SS[d];
+      saveSuan(); renderSuan();
+      document.getElementById('ssDetailMask').style.display='none';
+      showToast('已删除该条速算记录');
+    }
+  };
 }
 document.getElementById('ssDetailClose').onclick = ()=>{ document.getElementById('ssDetailMask').style.display='none'; };
 /* 切换日期时清空上次输入，避免在旧记录上改 */
