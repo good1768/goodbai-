@@ -247,6 +247,20 @@ body{
 .task.moved .txt{color:#8A5A00;font-weight:600}
 .task.moved .ck{border-color:#E0B878}
 .task.done .txt{color:#A9B5AF;text-decoration:line-through}
+.task.dup{background:#FFF3E0;border-left:3px solid #F59E0B}
+.task.dup .txt{color:#92400E;font-weight:600}
+.dup-tag{background:#F59E0B;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:1px;white-space:nowrap}
+/* 前移（任务从后面挪到前面）：绿色 */
+.task.moved-fwd{background:#E9F7EE;border-left:3px solid #16A34A}
+.task.moved-fwd .txt{color:#166534;font-weight:600}
+.task.moved-fwd .ck{border-color:#86EFAC}
+/* 后移（任务从前面挪到后面）：紫色 */
+.task.moved-bwd{background:#F5F0FA;border-left:3px solid #8E6BC0}
+.task.moved-bwd .txt{color:#6D28D9;font-weight:600}
+.task.moved-bwd .ck{border-color:#C4B5FD}
+.move-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:1px;white-space:nowrap}
+.move-tag.fwd{background:#16A34A;color:#fff}
+.move-tag.bwd{background:#8E6BC0;color:#fff}
 .task-sub{padding:10px 14px;background:#FBFCFA;border-top:1px dashed #E7EDE8}
 .task-sub .sl-label{font-size:11px;color:#B0722A;font-weight:700;margin-bottom:4px}
 .task-sub .sl{font-size:12.5px;color:var(--ink);line-height:1.65}
@@ -1460,6 +1474,22 @@ function saveCustom(){ localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUSTOM));
 function saveRest(){ localStorage.setItem(REST_KEY, JSON.stringify(REST)); syncQueue(); }
 function saveRemove(){ localStorage.setItem(REMOVE_KEY, JSON.stringify(REMOVE)); syncQueue(); }
 function saveMoved(){ localStorage.setItem(MOVED_KEY, JSON.stringify(MOVED)); syncQueue(); }
+/* 迁移：旧 MOVED 值 true → 从 REMOVE 推断来源日期，让旧移动记录也能区分前移/后移 */
+(function(){
+  let _mig = false;
+  Object.keys(MOVED).forEach(k=>{
+    if(MOVED[k] === true){
+      const _p = k.split('|');
+      const _to = _p[0], _ty = _p[1], _tx = _p.slice(2).join('|');
+      let _from = null;
+      for(const _d in REMOVE){
+        if((REMOVE[_d][_ty]||[]).indexOf(_tx) > -1){ _from = _d; break; }
+      }
+      if(_from){ MOVED[k] = _from; _mig = true; }
+    }
+  });
+  if(_mig) localStorage.setItem(MOVED_KEY, JSON.stringify(MOVED));
+})();
 function saveDeleted(){ localStorage.setItem(DELETED_KEY, JSON.stringify(DELETED)); syncQueue(); }
 let EXAMLOG = []; try{ EXAMLOG = JSON.parse(localStorage.getItem(EXAMLOG_KEY)||'[]'); }catch(e){}
 function saveExamLog(){ localStorage.setItem(EXAMLOG_KEY, JSON.stringify(EXAMLOG)); syncQueue(); }
@@ -2824,6 +2854,8 @@ function dayTasks(d){
     const row = base[0] ? Object.assign({}, base[0]) : {date:d, week:WEEKS[parseDate(d).getDay()], type:isRestDay(d)?'周日休息':'自定义', stage:'自定义', hours:0, done:'未开始', note:''};
     row.xc = ((row.xc||'')+'\n'+c.xc.join('\n')).split('\n').filter(Boolean).join('\n');
     row.sl = ((row.sl||'')+'\n'+c.sl.join('\n')).split('\n').filter(Boolean).join('\n');
+    row._custXc = c.xc.slice();
+    row._custSl = c.sl.slice();
     return [row];
   }
   return base;
@@ -2841,7 +2873,7 @@ function moveTask(date, type, text, toDate){
   if(!CUSTOM[toDate]) CUSTOM[toDate] = {xc:[], sl:[]};
   CUSTOM[toDate][type].push(text);
   saveCustom();
-  MOVED[toDate+'|'+type+'|'+text] = true;
+  MOVED[toDate+'|'+type+'|'+text] = date; // 记录来源日期，用于区分前移/后移
   saveMoved();
   // 打卡状态随任务迁移
   const oldKey = date+'|'+type+'|'+text;
@@ -2897,6 +2929,15 @@ function stageChip(stage){
 const TIP_DAYS = {
   '2026-10-21': '【数量保底策略】零基础目标做对 5~8 题即可：不恋战、不纠结，把时间留给资料分析和判断推理这两个提分主力。'
 };
+/* 判断任务移动方向：返回样式class和文字标签。旧数据（true）无法区分方向，仅浅黄背景不标文字 */
+function movedInfo(date, type, txt){
+  const v = MOVED[date+'|'+type+'|'+txt];
+  if(!v) return {cls:'', tag:''};
+  if(v === true) return {cls:' moved', tag:''};
+  if(v > date) return {cls:' moved-fwd', tag:' <span class="move-tag fwd">前移</span>'};
+  if(v < date) return {cls:' moved-bwd', tag:' <span class="move-tag bwd">后移</span>'};
+  return {cls:' moved', tag:''};
+}
 function dayCardHTML(date, fold, delay, over){
   const rows = dayTasks(date);
   if(rows.length===0) return '';
@@ -2907,6 +2948,20 @@ function dayCardHTML(date, fold, delay, over){
   const xcTasks = splitTasks(r.xc);
   const slTasks = splitTasks(r.sl);
   const canCkAll = date < todayStr() && st!=='done' && total>0;
+  // 统计当天重复任务：同一天内相同任务名出现次数（含行测+申论），用于标注重复
+  const dupMap = {};
+  xcTasks.concat(slTasks).forEach(t=>{ dupMap[t.txt] = (dupMap[t.txt]||0)+1; });
+  const dupOf = txt=> dupMap[txt]>1 ? dupMap[txt] : 0;
+  // 区分"移入/自定义"任务实例：CUSTOM 里的任务在拼接顺序上排基础任务之后，同名时后面的实例才是移入的
+  const custXc = (r._custXc||[]).slice();
+  const custSl = (r._custSl||[]).slice();
+  const custLeftX = {}; custXc.forEach(t=>{ custLeftX[t]=(custLeftX[t]||0)+1; });
+  const custLeftS = {}; custSl.forEach(t=>{ custLeftS[t]=(custLeftS[t]||0)+1; });
+  const isCustOf = (txt, side)=>{
+    const left = side==='xc'? custLeftX : custLeftS;
+    if((left[txt]||0) > 0){ left[txt]--; return true; }
+    return false;
+  };
   let html = '<div class="day-card'+(fold?' day-fold':'')+(delay?' delay-marked':'')+(over?' over-limit':'')+'">';
   if(over){
     html += '<div style="background:#FFF3E0;color:#E65100;font-size:11px;padding:4px 14px;border-bottom:1px solid #FFE0B2">⚠️ 已超过考试日，需加快进度</div>';
@@ -2932,10 +2987,11 @@ function dayCardHTML(date, fold, delay, over){
   }
   xcTasks.forEach(t=>{
       const dk = isDone(date,'xc',t.txt);
-      const mv = MOVED[date+'|xc|'+t.txt] ? ' moved' : '';
-      html += '<div class="task'+mv+(dk?' done':'')+'">' +
+      const mvInfo = isCustOf(t.txt,'xc') ? movedInfo(date,'xc',t.txt) : {cls:'',tag:''};
+      const dp = dupOf(t.txt);
+      html += '<div class="task'+mvInfo.cls+(dp?' dup':'')+(dk?' done':'')+'">' +
         '<div class="ck" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
-        '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+'</span></div>' +
+        '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
         '<div class="mv"><button class="mv-btn" data-mv="prev" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="前移一天">◀</button><button class="mv-btn" data-mv="next" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="后移一天">▶</button><button class="mv-btn mv-dot" data-op-date="'+date+'" data-op-type="xc" data-op-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="更多操作">⋯</button></div>' +
       '</div>';
     });
@@ -2943,10 +2999,11 @@ function dayCardHTML(date, fold, delay, over){
       html += '<div class="task-sub"><div class="sl-label">申论任务</div>';
       slTasks.forEach(t=>{
         const dk = isDone(date,'sl',t.txt);
-        const mv = MOVED[date+'|sl|'+t.txt] ? ' moved' : '';
-        html += '<div class="task'+mv+(dk?' done':'')+'" style="padding:6px 0;border:none">' +
+        const mvInfo = isCustOf(t.txt,'sl') ? movedInfo(date,'sl',t.txt) : {cls:'',tag:''};
+        const dp = dupOf(t.txt);
+        html += '<div class="task'+mvInfo.cls+(dp?' dup':'')+(dk?' done':'')+'" style="padding:6px 0;border:none">' +
           '<div class="ck" style="width:17px;height:17px" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
-          '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+'</span></div>' +
+          '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
           '<div class="mv"><button class="mv-btn" data-mv="prev" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'">◀</button><button class="mv-btn" data-mv="next" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'">▶</button><button class="mv-btn mv-dot" data-op-date="'+date+'" data-op-type="sl" data-op-txt="'+t.txt.replace(/"/g,'&quot;')+'">⋯</button></div></div>';
       });
       html += '</div>';
@@ -3634,8 +3691,8 @@ function confirmEdit(){
   // 自定义/移动任务：更新 CUSTOM 与 REMOVE 中所有该文本
   for(const dd in CUSTOM){ CUSTOM[dd][type] = (CUSTOM[dd][type]||[]).map(t=>t===text?newText:t); }
   for(const dd in REMOVE){ REMOVE[dd][type] = (REMOVE[dd][type]||[]).map(t=>t===text?newText:t); }
-  // 移动标记 key 迁移
-  if(MOVED[date+'|'+type+'|'+text]){ delete MOVED[date+'|'+type+'|'+text]; MOVED[date+'|'+type+'|'+newText]=true; }
+  // 移动标记 key 迁移（保留来源日期）
+  if(MOVED[date+'|'+type+'|'+text]){ const _v = MOVED[date+'|'+type+'|'+text]; delete MOVED[date+'|'+type+'|'+text]; MOVED[date+'|'+type+'|'+newText]=_v; }
   // 打卡 key 迁移
   if(doneMap[date+'|'+type+'|'+text]){ delete doneMap[date+'|'+type+'|'+text]; doneMap[date+'|'+type+'|'+newText]=true; }
   saveCustom(); saveRemove(); saveMoved(); saveDone();
