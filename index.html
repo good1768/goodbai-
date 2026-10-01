@@ -105,7 +105,10 @@ body{
 .dur-card .dur-add:active{background:var(--primary);color:#fff}
 .dur-card .dur-open-hint{margin-top:7px;font-size:11px;color:var(--ink3,#9AA8A0);cursor:pointer}
 .dur-card .dur-hist-link{margin-top:4px;font-size:11px;color:var(--primary);font-weight:700;cursor:pointer}
-.dur-hist-list{display:flex;flex-direction:column;gap:7px;max-height:52vh;overflow:auto}
+.dur-hist-list{display:flex;flex-direction:column;gap:7px;max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.dur-hist-list>.dur-hist-month{flex-shrink:0}
+.dur-hist-month .dhm-body>.dur-hist-week{flex-shrink:0}
+.dur-hist-week .dhw-body>.dur-hist-day{flex-shrink:0}
 .dur-hist-day{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
 .dur-hist-day .dhd-head{display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer;font-size:13px}
 .dur-hist-day .dhd-head:active{background:var(--primary-soft)}
@@ -118,6 +121,27 @@ body{
 .dur-hist-day .dhd-i{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2);padding-top:6px}
 .dur-hist-day .dhd-i span{flex:1;color:var(--ink)}
 .dur-hist-day .dhd-i b{color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums}
+/* 月 → 周 → 天 三级折叠 */
+.dur-hist-month{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+.dur-hist-month .dhm-head{display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer;font-size:13px;background:var(--primary-soft)}
+.dur-hist-month .dhm-head:active{filter:brightness(.95)}
+.dur-hist-month .dhm-title{font-weight:700;color:var(--ink)}
+.dur-hist-month .dhm-sum{margin-left:auto;font-size:11px;color:var(--ink2)}
+.dur-hist-month .dhm-h{color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums}
+.dur-hist-month .dhm-arrow{color:var(--ink2);font-size:12px;width:14px;text-align:center}
+.dur-hist-month .dhm-body{display:none;flex-direction:column;gap:7px;padding:8px}
+.dur-hist-month.open .dhm-body{display:flex}
+.dur-hist-week{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#FAFCFB}
+.dur-hist-week .dhw-head{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;font-size:12.5px}
+.dur-hist-week .dhw-head:active{background:var(--primary-soft)}
+.dur-hist-week .dhw-title{font-weight:600;color:var(--ink)}
+.dur-hist-week .dhw-sum{margin-left:auto;font-size:11px;color:var(--ink2)}
+.dur-hist-week .dhw-h{color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums}
+.dur-hist-week .dhw-arrow{color:var(--ink2);font-size:11px;width:13px;text-align:center}
+.dur-hist-week .dhw-body{display:none;flex-direction:column;gap:6px;padding:7px}
+.dur-hist-week.open .dhw-body{display:flex}
+.dur-hist-week .dur-hist-day{border:0;border-bottom:1px dashed var(--line);border-radius:0;background:transparent}
+.dur-hist-week .dur-hist-day:last-child{border-bottom:0}
 .delay-warn{display:flex;align-items:flex-start;gap:8px;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;font-weight:600;line-height:1.55;color:#fff}
 .delay-warn svg{width:16px;height:16px;flex:none;margin-top:2px}
 .delay-warn.w1{background:linear-gradient(90deg,#F0C060,#F2D088);color:#5C3D0A}
@@ -4748,7 +4772,18 @@ function renderDurHist(){
     el.innerHTML = '<div style="font-size:12px;color:var(--ink2);padding:8px 2px">还没有时长记录。打卡时填写用时后，这里会按天存档，随时可回看。</div>';
     return;
   }
-  el.innerHTML = dates.map(d=>{
+  // 按"月 → 自然周 → 天"分组（每周以周一为起点）
+  const months = {};
+  dates.forEach(d=>{
+    const m = d.slice(0,7);
+    if(!months[m]) months[m] = {};
+    const dt = parseDate(d);
+    const off = (dt.getDay()+6)%7; // 距本周一偏移
+    const ws = fmtDate(new Date(dt.getTime() - off*86400000));
+    if(!months[m][ws]) months[m][ws] = [];
+    months[m][ws].push(d);
+  });
+  const dayHTML = d=>{
     const v = DUR[d];
     let items = [];
     if(typeof v==='number'){ items = [{note:'当日总时长', h:v}]; }
@@ -4767,13 +4802,71 @@ function renderDurHist(){
       '<div class="dhd-head"><span class="dhd-date">'+(d.slice(5).replace('-','/'))+' '+names[dt.getDay()]+'</span><span class="dhd-h">'+fmtDur(total)+'</span><span class="dhd-n">'+items.length+'项</span><span class="dhd-arrow">▸</span></div>'+
       '<div class="dhd-body">'+items.map(x=>'<div class="dhd-i"><span>'+escHtml(x.note)+'</span><b>'+fmtDur(x.h)+'</b></div>').join('')+'</div>'+
     '</div>';
+  };
+  const monthsSorted = Object.keys(months).sort().reverse();
+  el.innerHTML = monthsSorted.map(m=>{
+    const weeks = Object.keys(months[m]).sort().reverse();
+    const allDays = weeks.reduce((a,w)=>a.concat(months[m][w]),[]);
+    const mTotal = allDays.reduce((s,d)=>{
+      const v = DUR[d];
+      if(typeof v==='number') return s+v;
+      let t=0;
+      if(v && typeof v==='object') Object.keys(v).filter(k=>k!=='_old').forEach(k=>{ t += +v[k]||0; });
+      return s+t;
+    },0);
+    const yy = m.slice(0,4), mm = +m.slice(5);
+    const mLabel = (new Date().getFullYear()===yy) ? mm+'月' : yy+'年'+mm+'月';
+    const weekHTML = weeks.map(w=>{
+      const wsD = parseDate(w);
+      const weD = new Date(wsD.getTime()+6*86400000);
+      const wLabel = (wsD.getMonth()+1)+'/'+wsD.getDate()+' - '+(weD.getMonth()+1)+'/'+weD.getDate();
+      const wDays = months[m][w];
+      const wTotal = wDays.reduce((s,d)=>{
+        const v = DUR[d];
+        if(typeof v==='number') return s+v;
+        let t=0;
+        if(v && typeof v==='object') Object.keys(v).filter(k=>k!=='_old').forEach(k=>{ t += +v[k]||0; });
+        return s+t;
+      },0);
+      return '<div class="dur-hist-week">'+
+        '<div class="dhw-head"><span class="dhw-title">'+wLabel+' 周</span><span class="dhw-h">'+fmtDur(wTotal)+'</span><span class="dhw-sum">'+wDays.length+'天</span><span class="dhw-arrow">▸</span></div>'+
+        '<div class="dhw-body">'+wDays.map(dayHTML).join('')+'</div>'+
+      '</div>';
+    }).join('');
+    return '<div class="dur-hist-month">'+
+      '<div class="dhm-head"><span class="dhm-title">'+mLabel+'</span><span class="dhm-h">'+fmtDur(mTotal)+'</span><span class="dhm-sum">'+allDays.length+'天</span><span class="dhm-arrow">▸</span></div>'+
+      '<div class="dhm-body">'+weekHTML+'</div>'+
+    '</div>';
   }).join('');
-  el.querySelectorAll('.dhd-head').forEach(h=>{
+  // 事件：天级展开
+  el.querySelectorAll('.dur-hist-day .dhd-head').forEach(h=>{
     h.onclick = ()=>{
       const day = h.parentElement;
       day.classList.toggle('open');
       const a = h.querySelector('.dhd-arrow');
       if(a) a.textContent = day.classList.contains('open') ? '▾' : '▸';
+    };
+  });
+  // 事件：周级展开
+  el.querySelectorAll('.dur-hist-week .dhw-head').forEach(h=>{
+    h.onclick = ()=>{
+      const wk = h.parentElement;
+      wk.classList.toggle('open');
+      const a = h.querySelector('.dhw-arrow');
+      if(a) a.textContent = wk.classList.contains('open') ? '▾' : '▸';
+    };
+  });
+  // 事件：月级展开（展开月份时自动展开该月所有周，方便上滑连续看每天）
+  el.querySelectorAll('.dur-hist-month .dhm-head').forEach(h=>{
+    h.onclick = ()=>{
+      const mo = h.parentElement;
+      const willOpen = !mo.classList.contains('open');
+      mo.classList.toggle('open');
+      if(willOpen){
+        mo.querySelectorAll('.dur-hist-week').forEach(w=>w.classList.add('open'));
+      }
+      const a = h.querySelector('.dhm-arrow');
+      if(a) a.textContent = mo.classList.contains('open') ? '▾' : '▸';
     };
   });
 }
