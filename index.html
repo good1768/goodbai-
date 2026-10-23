@@ -3380,11 +3380,13 @@ function askDur(date, type, text){
   // 已完成的点一下 = 取消完成，并移除该任务用时
   if(doneMap[k]){
     delete doneMap[k];
-    // 取消完成时：如果是补做过去的任务，时长记在今天，从今天删
-    const durDate = (date < todayStr()) ? todayStr() : date;
-    const displayText = (date < todayStr()) 
-      ? '[补自'+date.slice(5).replace('-','/')+'] '+text 
-      : text;
+    // 取消完成时：补做过去/提前做未来的任务，时长都记在今天，从今天删
+    const nowStr = todayStr();
+    const isPast = date < nowStr, isFuture = date > nowStr;
+    const durDate = (isPast || isFuture) ? nowStr : date;
+    const displayText = isPast
+      ? '[补自'+date.slice(5).replace('-','/')+'] '+text
+      : (isFuture ? '[提前做'+date.slice(5).replace('-','/')+'] '+text : text);
     delTaskDur(durDate, type, displayText);
     saveDone();
     refreshAll();
@@ -3417,12 +3419,14 @@ function confirmDur(){
   doneMap[p.date+'|'+p.type+'|'+p.text] = true;
   saveDone();
   if(hours>0){ 
-    // 补做过去的任务（拖延计划），时长记到今天；今天的任务记到今天
-    const durDate = (p.date < todayStr()) ? todayStr() : p.date;
-    // 补做的任务，在任务名前加"补自MM/DD"标记，避免和今天同名任务混淆
-    const displayText = (p.date < todayStr()) 
-      ? '[补自'+p.date.slice(5).replace('-','/')+'] '+p.text 
-      : p.text;
+    // 补做过去的任务、提前做未来的任务：时长都记到今天；今天的任务记到今天
+    const nowStr = todayStr();
+    const isPast = p.date < nowStr, isFuture = p.date > nowStr;
+    const durDate = (isPast || isFuture) ? nowStr : p.date;
+    // 补做/提前做的任务，在任务名前加标记，避免和今天同名任务混淆
+    const displayText = isPast
+      ? '[补自'+p.date.slice(5).replace('-','/')+'] '+p.text
+      : (isFuture ? '[提前做'+p.date.slice(5).replace('-','/')+'] '+p.text : p.text);
     setTaskDur(durDate, p.type, displayText, hours); 
     localStorage.setItem(LASTDUR_KEY, String(hours)); 
   }
