@@ -1621,9 +1621,8 @@ function renderSuan(){
     list.innerHTML=dates.slice().reverse().map(d=>{
       const e=SS[d]; const {total,right,time}=suanStat(e);
       const rate=total? Math.round(right/total*100):0;
-      let hitN=0;
-      SS_ITEMS.forEach(it=>{ const v=e.items&&e.items[it.key]; if(v && suanGoal(it.key, v.u||0)) hitN++; });
-      return '<div class="el-item" data-ssdate="'+d+'"><span class="ed">'+d.slice(5)+'</span><span class="en">'+(time? fmtMMSS(time):'')+'</span><span class="es">正确率'+rate+'%（对'+right+'/'+total+'）</span>'+(hitN?'<span class="ss-hit">达标'+hitN+'项</span>':'')+'<span class="ss-open">明细 ›</span><button class="del" data-ssdel="'+d+'">删除</button></div>';
+      // 达标几项已移至明细内展示，列表只保留正确率，便于跨天对比
+      return '<div class="el-item" data-ssdate="'+d+'"><span class="ed">'+d.slice(5)+'</span><span class="en">'+(time? fmtMMSS(time):'')+'</span><span class="es">正确率'+rate+'%（对'+right+'/'+total+'）</span><span class="ss-open">明细 ›</span><button class="del" data-ssdel="'+d+'">删除</button></div>';
     }).join('');
     list.onclick=e=>{
       if(e.target.closest('[data-ssdel]')) return;
