@@ -2875,6 +2875,49 @@ function saveDone(){ localStorage.setItem(LS_KEY, JSON.stringify(doneMap)); sync
     try{ localStorage.setItem(FLAG, '1'); }catch(e){}
   }catch(e){}
 })();
+/* 时长归位（一次性）：老版本"提前做未来/补做过去"时长错记到了任务日期；若新版本已在完成当天记过带标记的时长，则清掉任务日期下的同名无标记错记，避免重复计入任务日期的今日时长 */
+(function fixMisplacedDur(){
+  try{
+    const FLAG = 'gk72_durfix_v1';
+    if(localStorage.getItem(FLAG)) return;
+    const raw = localStorage.getItem('gk72_dur');
+    if(!raw){ try{ localStorage.setItem(FLAG,'1'); }catch(e){} return; }
+    const D = JSON.parse(raw);
+    if(!D || typeof D!=='object'){ try{ localStorage.setItem(FLAG,'1'); }catch(e){} return; }
+    const now = new Date();
+    const year = now.getFullYear();
+    const nowStr = year+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    let changed = false;
+    Object.keys(D).forEach(function(d){
+      const v = D[d];
+      if(!v || typeof v!=='object') return;
+      Object.keys(v).forEach(function(k){
+        const bar = k.indexOf('|');
+        if(bar<0) return;
+        const type = k.slice(0,bar), text = k.slice(bar+1);
+        const m = text.match(/^\[(提前做|补自)(\d{1,2})\/(\d{1,2})\]\s*(.*)$/);
+        if(!m) return;
+        const isFuture = (m[1]==='提前做');
+        const MM = +m[2], dd = +m[3], orig = m[4].replace(/\s+$/,'');
+        let ty = year;
+        let cand = ty+'-'+String(MM).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+        if(isFuture && cand < nowStr) ty = year+1;      // 提前做标记若落在过去，说明任务在次年
+        if(!isFuture && cand > nowStr) ty = year-1;     // 补自标记若落在未来，说明任务在上一年
+        const taskDate = ty+'-'+String(MM).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+        const tv = D[taskDate];
+        if(tv && typeof tv==='object'){
+          const dupKey = type+'|'+orig;
+          if(tv[dupKey] !== undefined){
+            delete tv[dupKey];
+            changed = true;
+          }
+        }
+      });
+    });
+    if(changed){ try{ localStorage.setItem('gk72_dur', JSON.stringify(D)); }catch(e){} }
+    try{ localStorage.setItem(FLAG,'1'); }catch(e){}
+  }catch(e){}
+})();
 function taskKey(date, type, text){ return date + '|' + type + '|' + text; }
 function isDone(date, type, text){ return !!doneMap[taskKey(date, type, text)]; }
 function toggleDone(date, type, text){
