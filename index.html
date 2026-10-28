@@ -63,6 +63,8 @@ body{
 .progress-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .prog-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
 .prog-card .t{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px}
+.addplan-btn{margin-left:auto;border:1px solid var(--primary);background:var(--primary-soft);color:var(--primary);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.addplan-btn:active{opacity:.6}
 .prog-card .t .prog-more{margin-left:auto;color:var(--primary);font-size:11px;font-style:normal;opacity:.85}
 .prog-card .pct{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:2px}
 .prog-card .bar{height:6px;background:#EDF2EE;border-radius:4px;margin-top:8px;overflow:hidden}
@@ -208,7 +210,7 @@ body{
 .trend-lb{font-size:9px;color:var(--ink2);height:12px;line-height:12px;white-space:nowrap}
 
 /* ===== 计划微调 ===== */
-.tune{margin:12px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.tune{margin:12px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tune button{
   border:1px solid var(--line);background:var(--card);border-radius:12px;
   padding:10px 4px;font-size:12px;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -717,7 +719,10 @@ body.narrow .tune{gap:10px!important}
 
     <div class="progress-grid">
       <div class="prog-card">
-        <div class="t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>今日计划完成度</div>
+        <div class="t">
+          <span style="display:flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>今日计划完成度</span>
+          <button class="addplan-btn" data-tune="1" title="点我快速增加计划">＋ 增加计划</button>
+        </div>
         <div class="pct" id="todayPct">0%</div>
         <div class="bar"><i id="todayBar" style="width:0%"></i></div>
         <div class="cnt" id="todayCnt">当前 0 | 目标 0</div>
@@ -747,7 +752,6 @@ body.narrow .tune{gap:10px!important}
     <div id="planList"></div>
 
     <div class="tune">
-      <button data-tune="1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>增加计划</button>
       <button data-tune="2"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>休息设置</button>
       <button data-tune="3"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h14M12 5l7 7-7 7"/></svg>计划移动</button>
     </div>
@@ -1085,6 +1089,7 @@ body.narrow .tune{gap:10px!important}
         <span class="ap-cat" data-cat="言语理解">言语理解</span>
         <span class="ap-cat" data-cat="数量关系">数量关系</span>
         <span class="ap-cat" data-cat="常识判断">常识判断</span>
+        <span class="ap-cat" data-cat="政治理论">政治理论</span>
         <span class="ap-cat" data-cat="申论">申论</span>
         <span class="ap-cat" data-cat="错题复盘">错题复盘</span>
         <span class="ap-cat" data-cat="__custom__">自定义</span>
@@ -4268,7 +4273,7 @@ document.getElementById('planTabs').addEventListener('click', e=>{
   document.querySelectorAll('#planTabs button').forEach(b=>b.classList.toggle('on', b===btn));
   renderPlanList();
 });
-document.querySelectorAll('.tune button').forEach(b=>{
+document.querySelectorAll('.tune button, .addplan-btn').forEach(b=>{
   b.onclick = ()=>{
     if(b.dataset.tune==='1'){ openAddPlan(); return; }
     if(b.dataset.tune==='2'){ openRestMask(); return; }
