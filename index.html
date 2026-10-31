@@ -63,8 +63,6 @@ body{
 .progress-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .prog-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
 .prog-card .t{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px}
-.addplan-btn{margin-left:auto;border:1px solid var(--primary);background:var(--primary-soft);color:var(--primary);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;cursor:pointer;white-space:nowrap;transition:opacity .15s}
-.addplan-btn:active{opacity:.6}
 .prog-card .t .prog-more{margin-left:auto;color:var(--primary);font-size:11px;font-style:normal;opacity:.85}
 .prog-card .pct{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:2px}
 .prog-card .bar{height:6px;background:#EDF2EE;border-radius:4px;margin-top:8px;overflow:hidden}
@@ -181,6 +179,10 @@ body{
 .dur-input-row{display:flex;align-items:center;gap:8px;margin-top:10px}
 .dur-input-row input{flex:1}
 .dur-unit{font-size:12px;color:var(--ink2);flex:none}
+.dur-date-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--ink2)}
+.dur-date-row b{font-weight:700;flex:none}
+.dur-date-row input{flex:1;min-width:0}
+.dur-date-tip{font-size:11px;color:var(--ink2);opacity:.8;margin-top:6px}
 
 .node-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-top:12px}
 .node-head{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px}
@@ -227,6 +229,7 @@ body{
 }
 .tabs button.on{background:var(--primary-deep);color:#fff;font-weight:700}
 .tabs button .n{font-variant-numeric:tabular-nums;font-size:11px;opacity:.75;margin-left:2px}
+.tabs .tab-add{flex:none;width:42px;font-size:20px;line-height:1;color:var(--primary);font-weight:800}
 
 /* ===== 日期卡与任务行 ===== */
 .day-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
@@ -719,10 +722,7 @@ body.narrow .tune{gap:10px!important}
 
     <div class="progress-grid">
       <div class="prog-card">
-        <div class="t">
-          <span style="display:flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>今日计划完成度</span>
-          <button class="addplan-btn" data-tune="1" title="点我快速增加计划">＋ 增加计划</button>
-        </div>
+        <div class="t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>今日计划完成度</div>
         <div class="pct" id="todayPct">0%</div>
         <div class="bar"><i id="todayBar" style="width:0%"></i></div>
         <div class="cnt" id="todayCnt">当前 0 | 目标 0</div>
@@ -748,6 +748,7 @@ body.narrow .tune{gap:10px!important}
       <button data-tab="today" class="on">今日计划<span class="n" id="nToday"></span></button>
       <button data-tab="delay">拖延计划<span class="n" id="nDelay"></span></button>
       <button data-tab="all">全部计划<span class="n" id="nAll"></span></button>
+      <button class="tab-add" data-tune="1" title="增加计划">＋</button>
     </div>
     <div id="planList"></div>
 
@@ -1253,6 +1254,11 @@ body.narrow .tune{gap:10px!important}
         <input type="number" class="modal-date" id="durMin" step="5" min="0" max="59" placeholder="分" style="margin-left:8px">
         <span class="dur-unit">分</span>
       </div>
+      <div class="dur-date-row">
+        <b>时长记到</b>
+        <input type="date" class="modal-date" id="durDatePick">
+      </div>
+      <div class="dur-date-tip" id="durDateTip">补打卡想记到哪天就选哪天；改回任务原日期会直接归位，不加标记。</div>
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" id="durCancel">取消</button>
@@ -1837,6 +1843,19 @@ function setTaskDur(date, type, text, hours){
 function delTaskDur(date, type, text){
   const v = DUR[date];
   if(v && typeof v==='object'){ delete v[type+'|'+text]; saveDur(); }
+}
+/* 取消完成：按该任务所有可能的存放方式（原日期无标记 / 任意日期带补自或提前做标记）精确删除，避免残留 */
+function delTaskDurAny(date, type, text){
+  const tagPast = '[补自'+date.slice(5).replace('-','/')+'] '+text;
+  const tagFut = '[提前做'+date.slice(5).replace('-','/')+'] '+text;
+  Object.keys(DUR).forEach(function(d){
+    const v = DUR[d];
+    if(!v || typeof v!=='object') return;
+    if(v[type+'|'+tagPast] !== undefined) delete v[type+'|'+tagPast];
+    if(v[type+'|'+tagFut] !== undefined) delete v[type+'|'+tagFut];
+    if(d === date && v[type+'|'+text] !== undefined) delete v[type+'|'+text];
+  });
+  saveDur();
 }
 function dayHours(date){
   const v = DUR[date];
@@ -3427,14 +3446,8 @@ function askDur(date, type, text){
   // 已完成的点一下 = 取消完成，并移除该任务用时
   if(doneMap[k]){
     delete doneMap[k];
-    // 取消完成时：补做过去/提前做未来的任务，时长都记在今天，从今天删
-    const nowStr = todayStr();
-    const isPast = date < nowStr, isFuture = date > nowStr;
-    const durDate = (isPast || isFuture) ? nowStr : date;
-    const displayText = isPast
-      ? '[补自'+date.slice(5).replace('-','/')+'] '+text
-      : (isFuture ? '[提前做'+date.slice(5).replace('-','/')+'] '+text : text);
-    delTaskDur(durDate, type, displayText);
+    // 取消完成：精确删除该任务记过的时长（原日期无标记 / 任意日期带补自或提前做标记）
+    delTaskDurAny(date, type, text);
     saveDone();
     refreshAll();
     showToast('已取消完成，并移除该任务用时');
@@ -3451,6 +3464,17 @@ function askDur(date, type, text){
   document.querySelectorAll('#durQuick .dur-q').forEach(b=>{
     b.classList.toggle('sel', b.dataset.h && Math.abs(parseFloat(b.dataset.h) - last) < 0.01);
   });
+  // 时长记到哪天的默认值：补做过去/提前做未来的任务默认今天，今天任务默认今天
+  const nowStr = todayStr();
+  const isPast = date < nowStr, isFuture = date > nowStr;
+  const defDurDate = (isPast || isFuture) ? nowStr : date;
+  const dp = document.getElementById('durDatePick');
+  dp.value = defDurDate;
+  dp.min = '2026-01-01';
+  dp.max = '';
+  document.getElementById('durDateTip').textContent = (isPast || isFuture)
+    ? '这个任务不是今天的，默认记到今天；补打卡想记到哪天就选哪天，改回任务原日期会直接归位、不加标记。'
+    : '默认记到今天；也可以改到其他日期。';
   document.getElementById('durMask').style.display = 'flex';
   setTimeout(()=>document.getElementById('durHour').focus(), 60);
 }
@@ -3466,14 +3490,17 @@ function confirmDur(){
   doneMap[p.date+'|'+p.type+'|'+p.text] = true;
   saveDone();
   if(hours>0){ 
-    // 补做过去的任务、提前做未来的任务：时长都记到今天；今天的任务记到今天
     const nowStr = todayStr();
     const isPast = p.date < nowStr, isFuture = p.date > nowStr;
-    const durDate = (isPast || isFuture) ? nowStr : p.date;
-    // 补做/提前做的任务，在任务名前加标记，避免和今天同名任务混淆
-    const displayText = isPast
-      ? '[补自'+p.date.slice(5).replace('-','/')+'] '+p.text
-      : (isFuture ? '[提前做'+p.date.slice(5).replace('-','/')+'] '+p.text : p.text);
+    // 时长记到哪天：默认今天；用户可在弹窗里选任意日期（改回任务原日期则干净归位）
+    let durDate = document.getElementById('durDatePick').value;
+    if(!durDate) durDate = (isPast || isFuture) ? nowStr : p.date;
+    // 记回任务自己日期时不加标记；记到其他日期时，补做/提前做的任务带来源标记，避免和该日同名任务混淆
+    const displayText = (durDate === p.date)
+      ? p.text
+      : (isPast
+        ? '[补自'+p.date.slice(5).replace('-','/')+'] '+p.text
+        : (isFuture ? '[提前做'+p.date.slice(5).replace('-','/')+'] '+p.text : p.text));
     setTaskDur(durDate, p.type, displayText, hours); 
     localStorage.setItem(LASTDUR_KEY, String(hours)); 
   }
@@ -4273,7 +4300,7 @@ document.getElementById('planTabs').addEventListener('click', e=>{
   document.querySelectorAll('#planTabs button').forEach(b=>b.classList.toggle('on', b===btn));
   renderPlanList();
 });
-document.querySelectorAll('.tune button, .addplan-btn').forEach(b=>{
+document.querySelectorAll('.tune button, .tab-add').forEach(b=>{
   b.onclick = ()=>{
     if(b.dataset.tune==='1'){ openAddPlan(); return; }
     if(b.dataset.tune==='2'){ openRestMask(); return; }
