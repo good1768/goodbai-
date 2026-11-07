@@ -60,7 +60,7 @@ body{
 .cd-motto:active{background:rgba(255,255,255,.22)}
 
 /* ===== 完成度卡 ===== */
-.progress-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.progress-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
 .prog-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
 .prog-card .t{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px}
 .prog-card .t .prog-more{margin-left:auto;color:var(--primary);font-size:11px;font-style:normal;opacity:.85}
@@ -105,6 +105,12 @@ body{
 .dur-card .dur-add:active{background:var(--primary);color:#fff}
 .dur-card .dur-open-hint{margin-top:7px;font-size:11px;color:var(--ink3,#9AA8A0);cursor:pointer}
 .dur-card .dur-hist-link{margin-top:4px;font-size:11px;color:var(--primary);font-weight:700;cursor:pointer}
+.dur-card .dur-plan-row{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+.dur-card .dur-plan-row .lbl{font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px}
+.dur-card .dur-plan-row .lbl svg{stroke:var(--primary);flex:none}
+.dur-card .dur-plan-row .lbl b{margin-left:auto;color:var(--primary);font-variant-numeric:tabular-nums;font-weight:700}
+.dur-card .dur-plan-row .bar{height:6px;background:#EDF2EE;border-radius:4px;margin-top:6px;overflow:hidden}
+.dur-card .dur-plan-row .bar i{display:block;height:100%;background:var(--primary);border-radius:4px;transition:width .35s}
 .dur-hist-list{display:flex;flex-direction:column;gap:7px;max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .dur-hist-list>.dur-hist-month{flex-shrink:0}
 .dur-hist-month .dhm-body>.dur-hist-week{flex-shrink:0}
@@ -600,6 +606,17 @@ body{
 .op-edit{background:var(--primary);color:#fff}
 .op-del{background:var(--danger);color:#fff}
 .op-cancel{background:#F1F5F2;color:var(--ink2)}
+.op-copy{background:var(--primary-soft);color:var(--primary)}
+.op-half{background:#FFF3E0;color:#B26A00}
+.hf-next{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--ink2);line-height:1.4}
+.hf-next input{width:16px;height:16px;margin:0;flex:none}
+.frac-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.frac-chip{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.frac-chip.sel{background:#B26A00;border-color:#B26A00;color:#fff}
+.prog-tag{background:#4A67B5;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:1px;white-space:nowrap}
+.cp-add{flex:none;border:none;background:var(--primary);color:#fff;border-radius:9px;width:34px;height:34px;font-size:16px;font-weight:700;cursor:pointer;line-height:1;padding:0}
+.cp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.cp-chip{background:var(--primary-soft);color:var(--primary);border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
 @media (min-width:700px){
   .app{padding-bottom:86px}
 }
@@ -720,13 +737,9 @@ body.narrow .tune{gap:10px!important}
       </div>
     </div>
 
+    <div id="durCardSlot"></div>
+
     <div class="progress-grid">
-      <div class="prog-card">
-        <div class="t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>今日计划完成度</div>
-        <div class="pct" id="todayPct">0%</div>
-        <div class="bar"><i id="todayBar" style="width:0%"></i></div>
-        <div class="cnt" id="todayCnt">当前 0 | 目标 0</div>
-      </div>
       <div class="prog-card" id="weekProgCard" title="点开看本周已完成/未完成任务">
         <div class="t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>本周计划完成度<i class="prog-more">点开看明细 ›</i></div>
         <div class="pct amber" id="weekPct">0%</div>
@@ -756,8 +769,6 @@ body.narrow .tune{gap:10px!important}
       <button data-tune="2"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>休息设置</button>
       <button data-tune="3"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h14M12 5l7 7-7 7"/></svg>计划移动</button>
     </div>
-
-    <div id="durCardSlot"></div>
 
     <div class="prog-total">
       <div class="pt-head">
@@ -1220,6 +1231,67 @@ body.narrow .tune{gap:10px!important}
   </div>
 </div>
 
+<div class="modal-mask" id="cpMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">复制任务</div>
+    <div class="modal-body">
+      <div class="modal-task" id="cpTask"></div>
+      <div class="modal-hint" style="font-weight:400">选复制到哪一天，内容也能顺手改；原件不会被删除。</div>
+      <input type="text" class="modal-date" id="cpText" maxlength="200" placeholder="任务内容">
+      <div class="dur-date-row">
+        <b>复制到</b>
+        <input type="date" class="modal-date" id="cpDate">
+        <button class="cp-add" id="cpAdd" type="button">＋</button>
+      </div>
+      <div class="cp-chips" id="cpChips"></div>
+      <div class="dur-date-tip">点「＋」可以一次加好几天，加完再确认；点日期上的 ✕ 可移除。</div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="cpCancel">取消</button>
+      <button class="modal-ok" id="cpOk">确认复制</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="hfMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">完成一半 · 记录用时</div>
+    <div class="modal-body">
+      <div class="modal-task" id="hfTask"></div>
+      <div class="modal-hint" style="font-weight:400">这次完成了多少、做了多久？只记时长，任务不勾完成，剩下的下次接着做。</div>
+      <div class="frac-row" id="hfFrac">
+        <button class="frac-chip sel" type="button" data-f="0.5">1/2</button>
+        <button class="frac-chip" type="button" data-f="0.333">1/3</button>
+        <button class="frac-chip" type="button" data-f="0.667">2/3</button>
+        <button class="frac-chip" type="button" data-f="0.25">1/4</button>
+        <button class="frac-chip" type="button" data-f="0.75">3/4</button>
+      </div>
+      <div class="dur-quick" id="hfQuick">
+        <button class="dur-q" data-h="0.5">30分</button>
+        <button class="dur-q" data-h="1">1h</button>
+        <button class="dur-q" data-h="1.5">1.5h</button>
+        <button class="dur-q" data-h="2">2h</button>
+      </div>
+      <div class="dur-input-row">
+        <input type="number" class="modal-date" id="hfHour" step="1" min="0" max="24" placeholder="时">
+        <span class="dur-unit">时</span>
+        <input type="number" class="modal-date" id="hfMin" step="5" min="0" max="59" placeholder="分" style="margin-left:8px">
+        <span class="dur-unit">分</span>
+      </div>
+      <div class="dur-date-row">
+        <b>时长记到</b>
+        <input type="date" class="modal-date" id="hfDatePick">
+      </div>
+      <div class="dur-date-tip" id="hfDateTip">默认记到今天。</div>
+      <label class="hf-next"><input type="checkbox" id="hfNext" checked> 在明天的计划里补一条剩余部分</label>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="hfCancel">取消</button>
+      <button class="modal-ok" id="hfOk">记入时长</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-mask" id="opMask" style="display:none">
   <div class="modal">
     <div class="modal-title">任务操作</div>
@@ -1228,6 +1300,8 @@ body.narrow .tune{gap:10px!important}
     </div>
     <div class="op-btns">
       <button class="op-btn op-edit" id="opEdit">编辑任务</button>
+      <button class="op-btn op-copy" id="opCopy">复制任务</button>
+      <button class="op-btn op-half" id="opHalf">完成一半（记时长）</button>
       <button class="op-btn op-del" id="opDel">删除任务</button>
       <button class="op-btn op-cancel" id="opCancel">取消</button>
     </div>
@@ -1440,6 +1514,29 @@ function dayDiff(from, to){
   return Math.round((new Date(to+'T00:00:00') - new Date(from+'T00:00:00'))/86400000);
 }
 let CUSTOM = {}; try{ CUSTOM = JSON.parse(localStorage.getItem(CUSTOM_KEY)||'{}'); }catch(e){}
+/* 任务分数进度：date|type|text → 已完成比例(0~1) */
+const PROG_KEY = 'gk72_prog';
+let PROGRESS = {};
+try{ PROGRESS = JSON.parse(localStorage.getItem(PROG_KEY)||'{}'); }catch(e){}
+function saveProg(){ localStorage.setItem(PROG_KEY, JSON.stringify(PROGRESS)); syncQueue(); }
+function progOf(date, type, text){ return +PROGRESS[date+'|'+type+'|'+text] || 0; }
+function fracLabel(v){
+  v = Math.max(0, Math.min(1, v));
+  if(v >= 0.995) return '全部';
+  let best = '', diff = 9;
+  for(let d=2; d<=6; d++){
+    for(let n=1; n<d; n++){
+      const cand = n/d, delta = Math.abs(cand - v);
+      if(delta < diff){ diff = delta; best = n+'/'+d; }
+    }
+  }
+  return best || Math.round(v*100)+'%';
+}
+function progTag(date, type, text){
+  const v = progOf(date, type, text);
+  if(v <= 0) return '';
+  return ' <span class="prog-tag">'+fracLabel(v)+'</span>';
+}
 let REST = []; try{ REST = JSON.parse(localStorage.getItem(REST_KEY)||'[]'); }catch(e){}
 let REMOVE = {}; try{ REMOVE = JSON.parse(localStorage.getItem(REMOVE_KEY)||'{}'); }catch(e){}
 let MOVED = {}; try{ MOVED = JSON.parse(localStorage.getItem(MOVED_KEY)||'{}'); }catch(e){}
@@ -2511,7 +2608,7 @@ document.getElementById('weekSummary').addEventListener('click', e=>{
 /* 点弹窗遮罩（背景）即关闭 */
 [
   ['apMask','apCancel'],['mvMask','mvCancel'],['edMask','edCancel'],['delMask','delCancel'],
-  ['opMask','opCancel'],['durMask','durCancel'],['extraMask','exCancel'],['durHistMask','durHistClose'],
+  ['opMask','opCancel'],['cpMask','cpCancel'],['hfMask','hfCancel'],['durMask','durCancel'],['extraMask','exCancel'],['durHistMask','durHistClose'],
   ['wkDetailMask','wkDetailClose'],['catDetailMask','catDetailClose'],['catColorMask','catColorClose'],['mottoMask','mottoCancel'],['ckAllMask','ckAllCancel'],['ssDetailMask','ssDetailClose']
 ].forEach(p=>{
   const m = document.getElementById(p[0]);
@@ -3135,7 +3232,7 @@ function dayCardHTML(date, fold, delay, over){
       const dp = dupOf(t.txt);
       html += '<div class="task'+mvInfo.cls+(dp?' dup':'')+(dk?' done':'')+'">' +
         '<div class="ck" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
-        '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
+        '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+progTag(date,'xc',t.txt)+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
         '<div class="mv"><button class="mv-btn" data-mv="prev" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="前移一天">◀</button><button class="mv-btn" data-mv="next" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="后移一天">▶</button><button class="mv-btn mv-dot" data-op-date="'+date+'" data-op-type="xc" data-op-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="更多操作">⋯</button></div>' +
       '</div>';
     });
@@ -3147,7 +3244,7 @@ function dayCardHTML(date, fold, delay, over){
         const dp = dupOf(t.txt);
         html += '<div class="task'+mvInfo.cls+(dp?' dup':'')+(dk?' done':'')+'" style="padding:6px 0;border:none">' +
           '<div class="ck" style="width:17px;height:17px" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
-          '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
+          '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+progTag(date,'sl',t.txt)+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
           '<div class="mv"><button class="mv-btn" data-mv="prev" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'">◀</button><button class="mv-btn" data-mv="next" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'">▶</button><button class="mv-btn mv-dot" data-op-date="'+date+'" data-op-type="sl" data-op-txt="'+t.txt.replace(/"/g,'&quot;')+'">⋯</button></div></div>';
       });
       html += '</div>';
@@ -3319,6 +3416,9 @@ function durCardHTML(date){
   const act = dayHours(date);
   const pct = plan ? Math.min(Math.round(act/plan*100), 100) : 0;
   const meta = plan ? '计划 '+plan+'h' : '';
+  // 今日计划完成度（已并入时长卡片）
+  const tc = doneCountOf(date);
+  const tpct = tc.total ? Math.round(tc.done/tc.total*100) : 0;
   let tip;
   if(act>0){
     tip = act>=plan
@@ -3330,7 +3430,9 @@ function durCardHTML(date){
   return '<div class="dur-card"><div class="dur-head"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>今日学习时长<span class="dur-meta">'+meta+'</span><button class="dur-add" id="durAdd" type="button">＋ 添加</button></div>' +
     '<div class="dur-val"><b>'+fmtDur(act)+'</b>'+(plan? ' / '+plan+'h':'')+'</div>' +
     '<div class="dur-bar"><i style="width:'+pct+'%"></i></div>' +
-    tip + '<div class="dur-open-hint">点卡片查看／调整每条时长记录 ›</div>' +
+    tip +
+    '<div class="dur-plan-row"><div class="lbl"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>今日计划完成度<b>'+tc.done+'/'+tc.total+' · '+tpct+'%</b></div><div class="bar"><i style="width:'+tpct+'%"></i></div></div>' +
+    '<div class="dur-open-hint">点卡片查看／调整每条时长记录 ›</div>' +
     '<div class="dur-hist-link" id="durHistLink">查看每日学习时长历史 ›</div></div>';
 }
 function bindCks(){
@@ -3820,6 +3922,155 @@ function opDel(){
   document.getElementById('opMask').style.display = 'none';
   if(pendingOp){ const p=pendingOp; pendingOp=null; askDelete(p.date, p.type, p.text); }
 }
+function opCopy(){
+  document.getElementById('opMask').style.display = 'none';
+  if(pendingOp){ const p=pendingOp; pendingOp=null; askCopy(p.date, p.type, p.text); }
+}
+function opHalf(){
+  document.getElementById('opMask').style.display = 'none';
+  if(pendingOp){ const p=pendingOp; pendingOp=null; askHalf(p.date, p.type, p.text); }
+}
+/* ===== 复制任务（原件保留，可同时改内容） ===== */
+let pendingCopy = null;
+let cpDates = [];
+function maxPlanDate(){ return (CFG.exam && CFG.exam > '2026-11-30') ? CFG.exam : '2026-11-30'; }
+function renderCpChips(){
+  const el = document.getElementById('cpChips');
+  if(!el) return;
+  if(!cpDates.length){ el.innerHTML = '<span style="font-size:11px;color:var(--ink2)">先在右边选一天，再点＋加进来</span>'; return; }
+  el.innerHTML = cpDates.map(d=>'<span class="cp-chip" data-d="'+d+'">'+d.slice(5).replace('-','/')+' ✕</span>').join('');
+  el.querySelectorAll('.cp-chip').forEach(c=>{
+    c.onclick = ()=>{ cpDates = cpDates.filter(x=>x!==c.dataset.d); renderCpChips(); };
+  });
+}
+function askCopy(date, type, text){
+  pendingCopy = {date, type, text};
+  document.getElementById('cpTask').textContent = text;
+  document.getElementById('cpText').value = text;
+  const dp = document.getElementById('cpDate');
+  dp.value = date;
+  dp.min = '2026-09-17';
+  dp.max = maxPlanDate();
+  cpDates = [date];
+  renderCpChips();
+  document.getElementById('cpMask').style.display = 'flex';
+}
+function addCpDate(){
+  const v = document.getElementById('cpDate').value;
+  if(!v){ showToast('先选一个日期'); return; }
+  if(v === CFG.exam){ showToast('不能复制到考试日'); return; }
+  if(v < '2026-09-17' || v > maxPlanDate()){ showToast('超出计划区间'); return; }
+  if(cpDates.indexOf(v) > -1){ showToast('这天已经在列表里了'); return; }
+  cpDates.push(v);
+  renderCpChips();
+  showToast('已加入 '+v.slice(5).replace('-','/'));
+}
+function confirmCopy(){
+  if(!pendingCopy) return;
+  const p = pendingCopy;
+  const txt = document.getElementById('cpText').value.trim();
+  if(!txt){ showToast('任务内容不能为空'); return; }
+  if(!cpDates.length){ showToast('先至少加一个目标日期'); return; }
+  for(let i=0;i<cpDates.length;i++){
+    const d = cpDates[i];
+    if(d === CFG.exam){ showToast('不能复制到考试日'); return; }
+    if(d < '2026-09-17' || d > maxPlanDate()){ showToast('有日期超出计划区间，先移除它'); return; }
+  }
+  const targets = cpDates.slice();
+  document.getElementById('cpMask').style.display = 'none';
+  pendingCopy = null;
+  cpDates = [];
+  targets.forEach(d=>{
+    if(!CUSTOM[d]) CUSTOM[d] = {xc:[], sl:[]};
+    if(!CUSTOM[d][p.type]) CUSTOM[d][p.type] = [];
+    CUSTOM[d][p.type].push(txt);
+  });
+  saveCustom();
+  refreshAll();
+  showToast(targets.length > 1 ? '已复制到 '+targets.length+' 天' : '已复制到 '+targets[0].slice(5).replace('-','/'));
+}
+/* ===== 部分完成（1/2、1/3、1/4…）：只记录进度和时长 ===== */
+let pendingHalf = null;
+function halfFrac(){
+  const b = document.querySelector('#hfFrac .frac-chip.sel');
+  return b ? (parseFloat(b.dataset.f)||0.5) : 0.5;
+}
+function askHalf(date, type, text){
+  pendingHalf = {date, type, text};
+  document.getElementById('hfTask').textContent = text;
+  document.getElementById('hfHour').value = '';
+  document.getElementById('hfMin').value = '';
+  document.querySelectorAll('#hfQuick .dur-q').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('#hfFrac .frac-chip').forEach(b=>b.classList.toggle('sel', b.dataset.f==='0.5'));
+  const nowStr = todayStr();
+  const dp = document.getElementById('hfDatePick');
+  dp.value = nowStr; dp.min = '2026-01-01'; dp.max = '';
+  document.getElementById('hfNext').checked = true;
+  const cur = progOf(date, type, text);
+  document.getElementById('hfDateTip').textContent = (cur > 0)
+    ? '这条已经完成 '+fracLabel(cur)+'，这次再选一份会累加。'
+    : (date !== nowStr ? '这个任务不是今天的，时长默认记到今天，也可以改。' : '默认记到今天；任务不会被勾成已完成。');
+  document.getElementById('hfMask').style.display = 'flex';
+  setTimeout(()=>document.getElementById('hfHour').focus(), 60);
+}
+function confirmHalf(){
+  if(!pendingHalf) return;
+  const p = pendingHalf;
+  const h = parseInt(document.getElementById('hfHour').value)||0;
+  const m = parseInt(document.getElementById('hfMin').value)||0;
+  const v = h + m/60;
+  const hours = (!(v>=0) || isNaN(v)) ? 0 : Math.min(Math.round(v*10)/10, 24);
+  const durDate = document.getElementById('hfDatePick').value || todayStr();
+  const addNext = document.getElementById('hfNext').checked;
+  const frac = halfFrac();
+  const key = p.date+'|'+p.type+'|'+p.text;
+  document.getElementById('hfMask').style.display = 'none';
+  pendingHalf = null;
+  if(hours > 0){
+    setTaskDur(durDate, p.type, p.text, hours);
+    localStorage.setItem(LASTDUR_KEY, String(hours));
+  }
+  // 累加完成比例；满 100% 自动勾完成
+  const cur = +PROGRESS[key] || 0;
+  const total = Math.min(1, Math.round((cur + frac)*1000)/1000);
+  PROGRESS[key] = total;
+  saveProg();
+  let finished = false;
+  if(total >= 0.995){
+    finished = true;
+    PROGRESS[key] = 1;
+    doneMap[key] = true;
+    saveDone();
+  }
+  // 没做完 → 明天补一条剩余部分（明天本来就有同名任务就不重复加）
+  let added = false;
+  if(addNext && !finished){
+    const nd = parseDate(todayStr()); nd.setDate(nd.getDate()+1);
+    const nextStr = fmtDate(nd);
+    let already = false;
+    try{
+      dayTasks(nextStr).forEach(r=>{
+        (r.xc||'').split('\n').concat((r.sl||'').split('\n')).forEach(line=>{
+          const parsed = splitTasks(line)[0];
+          if(parsed && parsed.txt === p.text) already = true;
+        });
+      });
+    }catch(e){}
+    if(!already){
+      if(!CUSTOM[nextStr]) CUSTOM[nextStr] = {xc:[], sl:[]};
+      if(!CUSTOM[nextStr][p.type]) CUSTOM[nextStr][p.type] = [];
+      CUSTOM[nextStr][p.type].push(p.text);
+      saveCustom();
+      added = true;
+    }
+  }
+  refreshAll();
+  let msg = hours>0 ? '已记入 '+hours+'h' : '已记录';
+  msg += '，这条累计完成 '+fracLabel(total);
+  if(finished) msg += '，已自动勾选完成';
+  else if(addNext) msg += added ? '，剩余已排到明天' : '，明天计划里已有这条，接着做即可';
+  showToast(msg);
+}
 /* ===== 编辑 / 删除任务 ===== */
 let pendingEdit = null, pendingDel = null;
 function askEdit(date, type, text){
@@ -3947,12 +4198,8 @@ function stageOf(date){
 function refreshProgress(){
   const now = new Date();
   const tStr = fmtDate(now);
-  // 今日
-  const td = doneCountOf(tStr);
-  const todayPct = td.total? Math.round(td.done/td.total*100) : 0;
-  document.getElementById('todayPct').textContent = todayPct+'%';
-  document.getElementById('todayBar').style.width = todayPct+'%';
-  document.getElementById('todayCnt').textContent = '当前 '+td.done+' | 目标 '+td.total;
+  // 今日完成度已并入"今日学习时长"卡片（durCardHTML 渲染），此处不再单独更新
+  const td = doneCountOf(tStr); // 仍用于今日标签角标
   // 本周（周一~周日）
   const dow = (now.getDay()+6)%7; // 周一=0
   const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate()-dow);
@@ -5034,6 +5281,34 @@ document.getElementById('durSkip').onclick = ()=>{
 };
 document.getElementById('durHour').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmDur(); } });
 document.getElementById('durMin').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmDur(); } });
+/* 复制任务 */
+document.getElementById('opCopy').onclick = opCopy;
+document.getElementById('cpOk').onclick = confirmCopy;
+document.getElementById('cpCancel').onclick = ()=>{ document.getElementById('cpMask').style.display='none'; pendingCopy=null; };
+document.getElementById('cpText').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmCopy(); } });
+document.getElementById('cpAdd').onclick = addCpDate;
+document.getElementById('cpDate').addEventListener('change', ()=>{ addCpDate(); });
+/* 完成一半 */
+document.getElementById('opHalf').onclick = opHalf;
+document.getElementById('hfOk').onclick = confirmHalf;
+document.getElementById('hfCancel').onclick = ()=>{ document.getElementById('hfMask').style.display='none'; pendingHalf=null; };
+document.querySelectorAll('#hfFrac .frac-chip').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('#hfFrac .frac-chip').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+  };
+});
+document.querySelectorAll('#hfQuick .dur-q').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('#hfQuick .dur-q').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    const h = parseFloat(b.dataset.h)||0;
+    document.getElementById('hfHour').value = Math.floor(h);
+    document.getElementById('hfMin').value = Math.round((h - Math.floor(h))*60);
+  };
+});
+document.getElementById('hfHour').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmHalf(); } });
+document.getElementById('hfMin').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmHalf(); } });
 document.getElementById('colorSave').onclick = saveColors;
 document.getElementById('nodeMore').onclick = ()=> go('settings');document.getElementById('colorReset').onclick = resetColors;
 document.getElementById('nodesSave').onclick = saveNodesForm;
