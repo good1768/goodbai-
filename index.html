@@ -3083,13 +3083,22 @@ function dayTasks(d){
   if(d === CFG.exam){
     return [{date:d, week:WEEKS[parseDate(d).getDay()], type:'考试日', stage:'考试日', hours:0, done:'未开始', note:'', xc:'', sl:''}];
   }
-  // 全部后移的休息日：显示空卡片，标注休息日，stage和base保持一致
+  // 全部后移的休息日：空卡片，标注休息日，stage和base保持一致
+  // 注意：休息日当天后来手动新增的任务仍要显示（取自 CUSTOM[d]）
   const op = RESTOPS[d];
   if(op && op.type === 'shift'){
     const bd = baseDateOf(d);
     const baseRow = DATA.find(r=>r.date===bd);
     const st = baseRow ? baseRow.stage : '';
-    return [{date:d, week:WEEKS[parseDate(d).getDay()], type:'休息日', stage:st, hours:0, done:'未开始', note:'', xc:'', sl:''}];
+    const row = {date:d, week:WEEKS[parseDate(d).getDay()], type:'休息日', stage:st, hours:0, done:'未开始', note:'', xc:'', sl:''};
+    const cRest = CUSTOM[d];
+    if(cRest && ((cRest.xc||[]).length || (cRest.sl||[]).length)){
+      row.xc = (cRest.xc||[]).join('\n');
+      row.sl = (cRest.sl||[]).join('\n');
+      row._custXc = (cRest.xc||[]).slice();
+      row._custSl = (cRest.sl||[]).slice();
+    }
+    return [row];
   }
   const bd = baseDateOf(d); // 显示日 d 对应的基础计划日期（支持整体平移）
   const base = DATA.filter(r=>r.date===bd).map(r=>{
