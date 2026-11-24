@@ -186,6 +186,10 @@ body{
 .arc-txt{flex:1;min-width:0;font-size:12.5px;color:#3F5A4D;line-height:1.5;overflow-wrap:anywhere}
 .arc-tag{display:inline-block;font-size:10.5px;padding:1px 5px;border-radius:4px;background:#EDF5F0;color:#3C7A5B;margin-right:4px;white-space:nowrap}
 .arc-btn{flex:0 0 auto;border:1px solid #C3DCCC;background:#fff;color:#2C7A55;font-size:11.5px;padding:4px 11px;border-radius:999px;cursor:pointer}
+.arc-pick{flex:0 0 auto;width:15px;height:15px;margin:0;accent-color:#2C7A55}
+.arc-selbar{display:flex;align-items:center;gap:8px;margin-top:8px;padding:9px 0 2px;border-top:1px solid #EEF6F1}
+.arc-seln{font-size:11.5px;color:#5B7A6A}
+.arc-selgo{margin-left:auto;border:none;background:#2C7A55;color:#fff;font-size:11.5px;font-weight:700;padding:6px 15px;border-radius:999px;cursor:pointer}
 .arc-tip-bar{margin:0 0 10px;padding:9px 13px;border-radius:11px;background:var(--primary-soft);color:var(--primary-deep);font-size:12px;line-height:1.5}
 .arc-mini{margin-left:auto;flex:0 0 auto;border:1px solid #C3DCCC;background:#fff;color:#2C7A55;font-size:11px;padding:3px 9px;border-radius:999px;cursor:pointer;white-space:nowrap}
 .arc-undo{display:block;width:100%;margin:8px 0 2px;border:1px solid #E7D9B5;background:#FFFBF0;color:#A2762B;font-size:12px;padding:8px 0;border-radius:10px;cursor:pointer}
@@ -624,6 +628,8 @@ body{
   opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .toast-txt{display:inline-block;max-width:62vw;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;white-space:nowrap}
+.toast-undo{border:none;background:#fff;color:#16372A;font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:999px;margin-left:10px;vertical-align:middle;cursor:pointer}
 .modal-mask{position:fixed;inset:0;z-index:60;background:rgba(20,35,28,.45);display:flex;align-items:center;justify-content:center;padding:28px}
 .modal{background:#fff;border-radius:16px;width:100%;max-width:340px;padding:20px;box-shadow:0 12px 40px rgba(20,35,28,.22);max-height:85vh;overflow-y:auto}
 .modal-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:12px}
@@ -1255,7 +1261,7 @@ body.narrow .tune{gap:10px!important}
   <div class="modal">
     <div class="modal-title">批量封存</div>
     <div class="modal-body">
-      <div class="modal-hint" style="font-weight:400">只封存还没打卡完成的任务，已完成的一条都不会动。封存后可以在封存区点“撤销最近一批”按原日期还原。</div>
+      <div class="modal-hint" style="font-weight:400">只封存还没打卡完成的任务，已完成的一条都不会动。封存后封存区里每次封存单独一行，点「撤销这批」只还原这一批；也可以勾选任意几条单独取回。</div>
       <button class="ab-btn" id="abPast"></button>
       <button class="ab-btn" id="abFuture"></button>
     </div>
@@ -1819,7 +1825,7 @@ function renderSuan(){
       if(row) openSsDetail(row.dataset.ssdate);
     };
     list.querySelectorAll('[data-ssdel]').forEach(b=>{
-      b.onclick=()=>{ delete SS[b.dataset.ssdel]; saveSuan(); renderSuan(); showToast('已删除该条速算记录'); };
+      b.onclick=()=>{ pushUndo('删除速算记录'); delete SS[b.dataset.ssdel]; saveSuan(); renderSuan(); showToast('已删除该条速算记录'); };
     });
   }
   // 曲线
@@ -1903,6 +1909,7 @@ document.getElementById('ssAdd').onclick=()=>{
   if(!has){ showToast('请填写至少一个题型的总题数'); return; }
   if(!hasU){ showToast('请填写至少一个题型的用时'); return; }
   const time=suanSum();
+  pushUndo('保存速算记录');
   SS[d]={time:time, items:items};
   saveSuan(); renderSuan(); clearSuanForm();
   showToast('已保存 '+d.slice(5)+' 速算记录'+(hits.length? '，达标：'+hits.join('、') : '，本次暂未达标，继续加油'));
@@ -1928,11 +1935,11 @@ function openSsDetail(d){
     html+='<div class="ssd-row"><span class="ssd-name">'+it.name+'</span><span class="ssd-mid">对 '+r+'/'+v.t+' · '+r2+'%</span><span class="ssd-time">'+(v.u? fmtMMSS(v.u):'')+'</span><span class="ssd-hit '+cls+'">'+gt+'</span></div>';
   });
   html+='<div style="font-size:10.5px;color:var(--ink2);margin-top:8px">达标线：两位数×一位数≤1.5分 · 两位数加减≤2分 · 三位数加减≤3分 · 多位÷两位≤1分 · 多位÷三位≤4分 · 四位数除法优秀≤4分/及格≤6分</div>';
-  html+='<div style="margin-top:14px;display:flex;gap:10px;justify-content:center">'
+  const ssdBtns = '<div style="margin-top:14px;display:flex;gap:10px;justify-content:center">'
     +'<button id="ssDetailEdit" style="background:var(--primary);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px">编辑此条</button>'
     +'<button id="ssDetailDel" style="background:#fee;border:1px solid var(--line);color:#c33;padding:8px 16px;border-radius:8px;font-size:13px">删除此条</button>'
     +'</div>';
-  document.getElementById('ssDetailBody').innerHTML = hasRow ? html : '<div style="font-size:12px;color:var(--ink2);padding:4px 0">这条记录没有明细数据</div>';
+  document.getElementById('ssDetailBody').innerHTML = (hasRow ? html : '<div style="font-size:12px;color:var(--ink2);padding:4px 0">这条记录没有明细数据</div>') + ssdBtns;
   document.getElementById('ssDetailMask').style.display='flex';
   // 编辑按钮：把这条记录填回表单
   document.getElementById('ssDetailEdit').onclick=()=>{
@@ -1965,6 +1972,7 @@ function openSsDetail(d){
   // 删除按钮
   document.getElementById('ssDetailDel').onclick=()=>{
     if(confirm('确定删除 '+d.slice(5)+' 的速算记录吗？')){
+      pushUndo('删除速算记录');
       delete SS[d];
       saveSuan(); renderSuan();
       document.getElementById('ssDetailMask').style.display='none';
@@ -3504,7 +3512,7 @@ function renderPlanList(){
       html += '</div></div>';
     });
   }
-  if(planTab==='today') html = undoBarHTML() + arcTipHTML() + html;
+  html = undoBarHTML() + (planTab==='today' ? arcTipHTML() : '') + html;
   html += archiveFoldHTML();
   el.innerHTML = html;
   bindCks();
@@ -3554,6 +3562,21 @@ function bindCks(){
   document.querySelectorAll('[data-undo-batch]').forEach(b=>{
     b.onclick = (e)=>{ e.stopPropagation(); undoBatch(+b.dataset.undoBatch); };
   });
+  document.querySelectorAll('[data-undo-ids]').forEach(b=>{
+    b.onclick = (e)=>{ e.stopPropagation(); undoByIds(b.dataset.undoIds); };
+  });
+  const picks = document.querySelectorAll('.arc-pick');
+  const selN = document.getElementById('arcSelN');
+  const selGo = document.getElementById('arcSelGo');
+  if(picks.length){
+    picks.forEach(p=>{ p.onchange = ()=>{ if(selN) selN.textContent = document.querySelectorAll('.arc-pick:checked').length; }; });
+  }
+  if(selGo) selGo.onclick = (e)=>{
+    e.stopPropagation();
+    const ids = Array.from(document.querySelectorAll('.arc-pick:checked')).map(x=>x.dataset.id);
+    if(!ids.length){ showToast('先勾选要取回的任务'); return; }
+    restoreSelectedArc(ids);
+  };
   const undoBtnEl = document.getElementById('undoBtn');
   if(undoBtnEl) undoBtnEl.onclick = (e)=>{ e.stopPropagation(); undoLast(); };
   const delayFoldHead = document.getElementById('delayFoldHead');
@@ -4061,7 +4084,7 @@ function opArchive(){
 const UNDO_KEY = 'gk72_undo';
 let UNDO = [];
 try{ const u = JSON.parse(localStorage.getItem(UNDO_KEY)||'[]'); if(Array.isArray(u)) UNDO = u; }catch(e){ UNDO = []; }
-function undoStateKeys(){ return [CUSTOM_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, LS_KEY, DUR_KEY, PROG_KEY, ARCHIVE_KEY, REST_KEY, RESTOPS_KEY, SHIFT_KEY]; }
+function undoStateKeys(){ return [CUSTOM_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, LS_KEY, DUR_KEY, PROG_KEY, ARCHIVE_KEY, REST_KEY, RESTOPS_KEY, SHIFT_KEY, SS_KEY]; }
 function saveUndo(){
   try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }
   catch(e){ UNDO = UNDO.slice(-2); try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }catch(_){} }
@@ -4073,6 +4096,7 @@ function pushUndo(label){
   UNDO.push({label:label, ts:Date.now(), data:data});
   while(UNDO.length > 6) UNDO.shift();
   saveUndo();
+  _undoToastPending = true;
 }
 function undoLastLabel(){ return UNDO.length ? UNDO[UNDO.length-1].label : ''; }
 function reloadStateFromStorage(){
@@ -4087,6 +4111,7 @@ function reloadStateFromStorage(){
   try{ REST = JSON.parse(localStorage.getItem(REST_KEY)||'[]'); }catch(e){ REST = []; }
   try{ RESTOPS = JSON.parse(localStorage.getItem(RESTOPS_KEY)||'{}'); }catch(e){ RESTOPS = {}; }
   try{ SHIFT = JSON.parse(localStorage.getItem(SHIFT_KEY)||'[]'); }catch(e){ SHIFT = []; }
+  try{ SS = JSON.parse(localStorage.getItem(SS_KEY)||'{}'); }catch(e){ SS = {}; }
 }
 function undoLast(){
   if(!UNDO.length){ showToast('没有可以撤销的操作'); return; }
@@ -4231,22 +4256,49 @@ function doBatchArchive(mode){
     : collectUnfinished(shiftDateStr(today,1), maxPlanDate());
   if(!list.length){ showToast('这个范围里没有未完成的任务'); return; }
   pushUndo('批量封存');
-  const batch = Date.now();
+  let batch = Date.now();
+  while(ARCHIVE.some(a=>a.batch===batch)) batch++;
   list.forEach(it=> archiveCore(it.date, it.type, it.text, batch));
   saveArchive();
   document.getElementById('abMask').style.display = 'none';
   refreshAll();
-  showToast('已封存 '+list.length+' 条，可点“撤销最近一批”还原');
+  const arcF = document.getElementById('arcFold');
+  if(arcF){ arcF.classList.add('open'); }
+  const arcH = document.getElementById('arcHead');
+  if(arcH){ try{ arcH.scrollIntoView({block:'start', behavior:'smooth'}); }catch(e){} }
+  showToast('已封存 '+list.length+' 条：封存区新增一行，点那一行的「撤销这批」只还原这一批');
 }
 function undoBatch(batch){
-  if(!batch){ showToast('这些是逐条封存的，请用右边的「取回」'); return; }
+  if(!batch){ showToast('这些是逐条封存的，请勾选后取回'); return; }
   const list = ARCHIVE.filter(a=>(a.batch||0)===batch);
   if(!list.length) return;
+  pushUndo('撤销封存批次');
   list.forEach(it=> restoreItem(it, it.from));
   ARCHIVE = ARCHIVE.filter(a=>(a.batch||0)!==batch);
   saveArchive();
   refreshAll();
   showToast('已撤销这一批 '+list.length+' 条，回到原来的日期');
+}
+function undoByIds(idsStr){
+  const ids = String(idsStr||'').split(',').filter(Boolean);
+  const list = ARCHIVE.filter(a=>ids.indexOf(a.id)>=0);
+  if(!list.length){ showToast('这批已经撤销过了'); return; }
+  pushUndo('撤销封存批次');
+  list.forEach(it=> restoreItem(it, it.from));
+  ARCHIVE = ARCHIVE.filter(a=>ids.indexOf(a.id)<0);
+  saveArchive();
+  refreshAll();
+  showToast('已撤销这批 '+list.length+' 条，回到原来的日期');
+}
+function restoreSelectedArc(ids){
+  const list = ARCHIVE.filter(a=>ids.indexOf(a.id)>=0);
+  if(!list.length) return;
+  pushUndo('取回封存任务');
+  list.forEach(it=> restoreItem(it, it.from));
+  ARCHIVE = ARCHIVE.filter(a=>ids.indexOf(a.id)<0);
+  saveArchive();
+  refreshAll();
+  showToast('已取回 '+list.length+' 条，回到原来的日期');
 }
 function undoLastBatch(){
   if(!ARCHIVE.length) return;
@@ -4260,27 +4312,36 @@ function arcBatchLabel(ts){
 }
 function archiveFoldHTML(){
   const items = ARCHIVE.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
-  // 按批次分组（batch=0 = 逐条封存）
-  const map = {};
-  items.forEach(a=>{
-    const b = a.batch||0;
-    if(!map[b]) map[b] = {batch:b, n:0, ts:0};
-    map[b].n++;
-    if((a.ts||0) > map[b].ts) map[b].ts = a.ts||0;
+  // 分组：同一 batch 视为一批；老数据 batch 相同但时间相隔较远（>30秒）也拆开
+  const asc = ARCHIVE.slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const today0 = todayStr();
+  const dirOf = a => (a.from < today0 ? 'past' : (a.from > today0 ? 'fut' : 'today'));
+  const groups=[]; let cur=null;
+  asc.forEach(a=>{
+    const b = a.batch||0, ts = a.ts||0, dir = dirOf(a);
+    if(!cur || b !== cur.batch || dir !== cur.dir || ts - cur.lastTs > 3000){
+      cur = {batch:b, items:[], ts:ts, lastTs:ts, dir:dir};
+      groups.push(cur);
+    }
+    cur.items.push(a); cur.lastTs = ts;
   });
-  const batches = Object.keys(map).map(k=>map[k]).filter(b=>b.batch).sort((x,y)=>y.ts-x.ts);
-  const loose = map[0] ? map[0].n : 0;
-  const batchRows = batches.map(b=>
-    '<div class="arc-bbatch"><span class="arc-btime">'+arcBatchLabel(b.ts)+' 封存 · '+b.n+' 条</span>'+
-    '<button class="arc-undo-mini" data-undo-batch="'+b.batch+'">撤销这批</button></div>').join('');
+  const allBatches = groups.filter(g=> g.batch || g.items.length >= 2).sort((x,y)=>x.ts-y.ts);
+  const batchGroups = allBatches.slice().sort((x,y)=>y.ts-x.ts);
+  const looseCount = groups.filter(g=> !g.batch && g.items.length < 2).reduce((n,g)=>n+g.items.length,0);
+  const batchRows = batchGroups.map(g=>{
+    const idx = allBatches.indexOf(g)+1;
+    return '<div class="arc-bbatch"><span class="arc-btime">第 '+idx+' 批（共 '+allBatches.length+' 批）· '+arcBatchLabel(g.ts)+' · '+g.items.length+' 条</span>'+
+    '<button class="arc-undo-mini" data-undo-ids="'+g.items.map(i=>i.id).join(',')+'">撤销这批</button></div>';
+  }).join('');
   return '<div class="arc-fold" id="arcFold">'+
-    '<div class="arc-head" id="arcHead"><span class="arc-arrow">▸</span><span>'+(items.length?('考后封存区（'+items.length+' 条）'):'考后封存区（空）')+'</span>'+
+    '<div class="arc-head" id="arcHead"><span class="arc-arrow">▸</span><span>'+(items.length?('考后封存区（'+items.length+' 条'+(batchGroups.length? ' · 共 '+batchGroups.length+' 批':'')+'）'):'考后封存区（空）')+'</span>'+
       '<button class="arc-mini" id="arcBatch">批量封存</button></div>'+
     '<div class="arc-body">'+
-    '<div class="arc-hint">已从考前的日程里挪出，内容都还在，随时可以取回到任意一天。</div>'+
+    '<div class="arc-hint">已从考前的日程里挪出，内容都还在。每次批量封存单独成一行（第 1 批、第 2 批…），点「撤销这批」只还原这一批；也可以勾选任意几条单独取回。</div>'+
     batchRows+
-    (loose? '<div class="arc-loose">另有 '+loose+' 条是逐条封存的，用下面的「取回」逐条处理。</div>':'')+
-    items.map(a=>'<div class="arc-item"><div class="arc-txt"><span class="arc-tag">'+(a.type==='sl'?'申论':'行测')+'</span>'+escHtml(a.txt)+'</div><button class="arc-btn" data-arc="'+a.id+'">取回</button></div>').join('')+
+    (looseCount? '<div class="arc-loose">另有 '+looseCount+' 条是单条封存的，勾选后可单独取回。</div>':'')+
+    items.map(a=>'<div class="arc-item"><input type="checkbox" class="arc-pick" data-id="'+a.id+'"><div class="arc-txt"><span class="arc-tag">'+(a.type==='sl'?'申论':'行测')+'</span>'+escHtml(a.txt)+'</div><button class="arc-btn" data-arc="'+a.id+'">取回</button></div>').join('')+
+    '<div class="arc-selbar"><span class="arc-seln">已选 <b id="arcSelN">0</b> 条</span><button class="arc-selgo" id="arcSelGo" type="button">取回选中</button></div>'+
     '</div></div>';
 }
 function arcTipHTML(){
@@ -5420,13 +5481,19 @@ document.getElementById('calPrev').onclick = ()=>{ calMonth--; renderCalendar();
 document.getElementById('calNext').onclick = ()=>{ calMonth++; renderCalendar(); };
 document.getElementById('sheetMask').onclick = closeSheet;
 
-let toastTimer=null;
+let toastTimer=null, _undoToastPending=false;
 function showToast(msg){
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  const undoable = !!(_undoToastPending && UNDO && UNDO.length);
+  _undoToastPending = false;
+  t.innerHTML = '<span class="toast-txt">'+escHtml(msg)+'</span>'+(undoable? '<button class="toast-undo" type="button">撤销</button>' : '');
+  if(undoable){
+    const b = t.querySelector('.toast-undo');
+    if(b) b.onclick = ()=>{ clearTimeout(toastTimer); t.classList.remove('show'); undoLast(); };
+  }
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), undoable ? 4500 : 2400);
 }
 
 /* ===== 启动 ===== */
