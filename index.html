@@ -174,6 +174,31 @@ body{
 .delay-fold.open .delay-fold-arrow{transform:rotate(90deg)}
 .delay-fold-body{display:none;padding:10px 10px 2px;border-top:1px dashed #EAD9B8}
 .delay-fold.open .delay-fold-body{display:block}
+/* ===== 考后封存区 ===== */
+.arc-fold{margin:14px 0 8px;border:1px dashed #C9DED1;border-radius:12px;background:#FAFDFB;overflow:hidden}
+.arc-head{display:flex;align-items:center;gap:7px;padding:10px 13px;cursor:pointer;font-size:12.5px;color:#4B7361;user-select:none}
+.arc-head .arc-arrow{font-size:11px;color:#7FA894;transition:transform .18s}
+.arc-fold.open .arc-head .arc-arrow{transform:rotate(90deg)}
+.arc-body{display:none;padding:2px 13px 10px;border-top:1px dashed #DDEDE3}
+.arc-fold.open .arc-body{display:block}
+.arc-hint{font-size:11px;color:#82998C;margin:7px 0 4px}
+.arc-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #EEF6F1}
+.arc-txt{flex:1;min-width:0;font-size:12.5px;color:#3F5A4D;line-height:1.5;overflow-wrap:anywhere}
+.arc-tag{display:inline-block;font-size:10.5px;padding:1px 5px;border-radius:4px;background:#EDF5F0;color:#3C7A5B;margin-right:4px;white-space:nowrap}
+.arc-btn{flex:0 0 auto;border:1px solid #C3DCCC;background:#fff;color:#2C7A55;font-size:11.5px;padding:4px 11px;border-radius:999px;cursor:pointer}
+.arc-tip-bar{margin:0 0 10px;padding:9px 13px;border-radius:11px;background:var(--primary-soft);color:var(--primary-deep);font-size:12px;line-height:1.5}
+.arc-mini{margin-left:auto;flex:0 0 auto;border:1px solid #C3DCCC;background:#fff;color:#2C7A55;font-size:11px;padding:3px 9px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.arc-undo{display:block;width:100%;margin:8px 0 2px;border:1px solid #E7D9B5;background:#FFFBF0;color:#A2762B;font-size:12px;padding:8px 0;border-radius:10px;cursor:pointer}
+.arc-bbatch{display:flex;align-items:center;gap:8px;margin:8px 0 2px;padding:6px 9px;border:1px solid #E7D9B5;background:#FFFBF0;border-radius:10px}
+.arc-btime{flex:1;min-width:0;font-size:11.5px;color:#8B6A2A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arc-undo-mini{flex:0 0 auto;border:1px solid #D8BE84;background:#fff;color:#A2762B;font-size:11px;padding:3px 9px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.arc-loose{font-size:11px;color:#82998C;margin:7px 0 2px}
+.ab-btn{display:block;width:100%;margin-top:10px;border:1px solid #C3DCCC;background:#fff;color:#2C7A55;font-size:13.5px;font-weight:700;padding:12px 8px;border-radius:11px;cursor:pointer}
+.ab-btn:disabled{opacity:.45}
+/* ===== 撤销条 ===== */
+.undo-bar{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:7px 12px;border-radius:10px;background:#F4F8F5;border:1px solid #DFEAE2;font-size:11.5px;color:#4B7361}
+.undo-bar .undo-txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.undo-btn{flex:0 0 auto;border:none;background:var(--primary);color:#fff;font-size:11.5px;font-weight:700;padding:4px 13px;border-radius:999px;cursor:pointer}
 /* 标签栏：拖延计划醒目黄色 */
 #planTabs button[data-tab="delay"]{color:#C07D18;font-weight:700}
 #planTabs button[data-tab="delay"] .n{color:#C07D18;background:#FFF0CF;border-radius:8px;padding:0 5px;opacity:1}
@@ -1032,6 +1057,8 @@ body.narrow .tune{gap:10px!important}
       <button class="set-btn" id="bkExport">导出备份（下载 .json）</button>
       <button class="set-btn ghost" id="bkImportBtn" style="margin-top:8px">导入备份（恢复数据）</button>
       <input type="file" id="bkFile" accept=".json,application/json" style="display:none">
+      <button class="set-btn ghost" id="undoBtnSet" style="margin-top:8px">↩ 撤销上一步操作</button>
+      <div style="font-size:11px;color:var(--ink2);margin-top:8px" id="undoHint">目前没有可撤销的操作</div>
       <div style="font-size:11px;color:var(--ink2);margin-top:8px">导入会覆盖当前设备上的全部数据，请确认备份文件是最新的。</div>
     </div>
 
@@ -1224,6 +1251,35 @@ body.narrow .tune{gap:10px!important}
   </div>
 </div>
 
+<div class="modal-mask" id="abMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">批量封存</div>
+    <div class="modal-body">
+      <div class="modal-hint" style="font-weight:400">只封存还没打卡完成的任务，已完成的一条都不会动。封存后可以在封存区点“撤销最近一批”按原日期还原。</div>
+      <button class="ab-btn" id="abPast"></button>
+      <button class="ab-btn" id="abFuture"></button>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="abCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="arcMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">从封存区取回</div>
+    <div class="modal-body">
+      <div class="modal-task" id="arcTask"></div>
+      <div class="modal-hint" style="font-weight:400">取回到哪一天？取回后会回到那天的任务列表里。</div>
+      <input type="date" class="modal-date" id="arcDate" min="2026-09-17" max="2026-12-31">
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="arcCancel">取消</button>
+      <button class="modal-ok" id="arcOk">取回</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-mask" id="edMask" style="display:none">
   <div class="modal">
     <div class="modal-title">编辑任务</div>
@@ -1322,6 +1378,7 @@ body.narrow .tune{gap:10px!important}
       <button class="op-btn op-edit" id="opEdit">编辑任务</button>
       <button class="op-btn op-copy" id="opCopy">复制任务</button>
       <button class="op-btn op-half" id="opHalf">完成一半（记时长）</button>
+      <button class="op-btn op-arch" id="opArchive">封存（考后再看）</button>
       <button class="op-btn op-del" id="opDel">删除任务</button>
       <button class="op-btn op-cancel" id="opCancel">取消</button>
     </div>
@@ -1519,7 +1576,7 @@ body.narrow .tune{gap:10px!important}
 const DATA = [{"date":"2026-09-17","week":"周四","type":"工作日","stage":"基础期","xc":"高照速算3页纸\n百化分练习\n刘义恒图推第2节（平面-样式规律+标记）\n高照资料第4节（现期量）\n资料第4节课后作业（现期量）\n资料第3节课后作业（基期量）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-18","week":"周五","type":"工作日","stage":"基础期","xc":"刘义恒图推第3节（平面-属性规律+数量规律（面））\n(3+2作业)资料第4节（现期量）（讲义二刷+复盘）\n(3+2作业)资料第3节（基期量）（讲义二刷+复盘）\n(3+2作业)图推第1节（位置规律+相邻比较）\n(3+2作业)图推第2节（样式规律+标记）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-19","week":"周六","type":"周六","stage":"基础期","xc":"(3+2作业)图推第3节（属性规律+数量规律）\n高照资料第5节（增长量）\n(选做)高照速算3页纸\n(选做)百化分练习\n高照速算3页纸\n百化分练习\n资料第5节课后作业（增长量）\n高照资料第6节 前1/3（一般增长率）\n(3+2作业)资料第5节（增长量）（讲义二刷+复盘）","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-09-20","week":"周日","type":"周日学习","stage":"基础期","xc":"刘义恒图推第4节（平面-数量规律（笔画、线、点））\n高照资料第6节（增长率）全部学完\n刘义恒图推第5节（平面-数量规律（元素、直角）+图）\n高照速算3页纸\n百化分练习","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-09-21","week":"周一","type":"工作日","stage":"基础期","xc":"(3+2作业)图推第4节（数量规律（笔画、线、点））\n(3+2作业)资料第6节（增长率）（讲义二刷+复盘）\n资料第6节课后作业（一般增长率）\n高照资料第7节（间隔增长率）\n高照速算3页纸\n百化分练习\n资料思维导图默写（基期现期增长量增长率）+红笔批改","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-22","week":"周二","type":"工作日","stage":"基础期","xc":"资料第7节课后作业（间隔增长率）\n(3+2作业)资料第7节（间隔增长率）（讲义二刷+复盘）\n高照资料第8节（年均增长率、乘积增长率）\n(3+2作业)图推第5节（数量规律（元素、直角））\n默写平面图推全部思维导图+批改\n高照速算3页纸\n百化分练习","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-23","week":"周三","type":"工作日","stage":"基础期","xc":"(3+2作业)资料第8节（乘积增长率+年均增长率）\n资料思维导图默写（间隔年均乘积增长率）+红笔批改\n资料第8节课后作业（年均增长率、乘积增长率）\n刘义恒图推第6节（平面思维导图串讲（梳理课））\n高照速算3页纸\n百化分练习\n高照资料第9节（混合增长率）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-24","week":"周四","type":"工作日","stage":"基础期","xc":"刘义恒图推第7节（空间-六面体+四面体）\n刘义恒图推第8节（空间-三视图+截面）\n资料思维导图默写（基期现期增长量增长率）+红笔批改\n高照速算3页纸\n百化分练习\n资料第9节课后作业（混合增长率）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-25","week":"周五","type":"工作日","stage":"基础期","xc":"(3+2作业)资料第9节（混合增长率）（讲义二刷+复盘）\n(3+2作业)图推第7节（六面体+四面体）（讲义二刷+复盘）\n高照速算3页纸\n百化分练习\n默写平面图推全部思维导图+批改\n高照资料第10节（比重）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-26","week":"周六","type":"周六","stage":"基础期","xc":"(3+2作业)图推第8节（三视图+截面）（讲义二刷+复盘）\n高照资料第11节（平均数）\n资料第10节课后作业（比重）\n(3+2作业)资料第10节（比重类）（讲义二刷+复盘）\n(3+2作业)资料第11节（平均数）（讲义二刷+复盘）\n资料思维导图默写（间隔年均乘积混合增长率）+红笔批改","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-09-27","week":"周日","type":"周日学习","stage":"基础期","xc":"高照速算3页纸\n百化分练习\n刘义恒图推第9节（空间-立体拼合、平面拼合、不规则）\n资料第11节课后作业（平均数）\n(3+2作业)图推第9节（立体拼合、平面拼合、不规则）（讲义二刷+复盘）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-09-28","week":"周一","type":"工作日","stage":"基础期","xc":"默写图推全部思维导图+批改\n高照资料第12节（倍数）\n资料第12节课后作业（倍数）\n(3+2作业)资料第12节（倍数）（讲义二刷+复盘）\n高照速算3页纸\n百化分练习\n高照资料第13节（A与非A、综合分析）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-29","week":"周二","type":"工作日","stage":"基础期","xc":"图推140题Day1（位置规律）\n高照速算3页纸\n百化分练习\n花生判断第1节 学完2/3（逻辑1）\n图推140题Day2（相邻比较）\n(3+2作业)资料第13节（A与非A）（讲义二刷+复盘）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-09-30","week":"周三","type":"工作日","stage":"基础期","xc":"花生逻辑1思维导图自己梳理写一遍\n花生判断第1节 全部学完（逻辑1）\n资料夸夸刷第1节（基期量）\n(3+2作业)花生逻辑1讲义题目二刷重做+复盘\n图推140题Day3（黑白运算）\n图推140题Day5（标记作用）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-01","week":"周四","type":"工作日","stage":"基础期","xc":"图推140题Day4（加减同异）\n高照速算3页纸\n百化分练习\n资料夸夸刷第2节 前半部分（现期量）\n花生判断第2节（逻辑2）\n花生判断第3节（逻辑3）\n图推140题Day6（属性规律）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-02","week":"周五","type":"工作日","stage":"基础期","xc":"资料夸夸刷第2节 后半部分（现期量）\n高照速算3页纸\n百化分练习\n图推140题Day7（面笔画点）\n(3+2作业)花生逻辑2讲义题目二刷重做+复盘\n图推140题Day9（面的细化）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-03","week":"周六","type":"周六","stage":"基础期","xc":"图推140题Day8（直角素线）\n资料思维导图默写（基期现期）+红笔批改\n(3+2作业)花生逻辑3讲义题目二刷重做+复盘\n默写平面图推思维导图+红笔批改\n花生逻辑前3节思维导图自己梳理写一遍\n资料夸夸刷第3节（增长量）\n资料夸夸刷第4节 前半部分（一般增长率）","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-10-04","week":"周日","type":"周日学习","stage":"基础期","xc":"图推140题Day11（曲线思路）\n图推140题Day10（元素细化）\n高照速算3页纸\n百化分练习\n花生判断第4节 前半部分（逻辑4）\n花生判断第4节 全部学完（逻辑4）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-10-05","week":"周一","type":"工作日","stage":"基础期","xc":"(3+2作业)花生逻辑4讲义题目二刷重做+复盘\n默写逻辑前4节思维导图+批改\n图推140题Day12（图形关系）\n高照速算3页纸\n百化分练习\n花生判断第5节（逻辑5）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-06","week":"周二","type":"工作日","stage":"基础期","xc":"图推140题Day14（四面体）\n图推140题Day13（六面体）\n高照速算3页纸\n百化分练习\n资料夸夸刷第4节 后半部分（一般增长率）\n花生判断第6节（逻辑6）\n图推140题的错题二刷重做+总结","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-07","week":"周三","type":"工作日","stage":"基础期","xc":"高照速算3页纸\n百化分练习\n默写图推全部思维导图+批改\n默写花生逻辑全部思维导图+批改\n(3+2作业)花生逻辑6讲义题目二刷重做+复盘\n资料思维导图默写（增长量,一般增长率）+红笔批改","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-08","week":"周四","type":"工作日","stage":"基础期","xc":"(3+2作业)花生逻辑5讲义题目二刷重做+复盘\n资料夸夸刷第5节 前半部分（年均增长率、间隔增长率）\n资料夸夸刷第5节 后半部分（年均增长率、间隔增长率）\n判断海海刷（逻辑刷题1）\n高照速算3页纸\n百化分练习","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-09","week":"周五","type":"工作日","stage":"基础期","xc":"图推夸夸刷第1节 前半部分（黑白块专项+模型1）\n图推夸夸刷第1节 后半部分（黑白块专项+模型1）\n资料夸夸刷第6节（乘积增长率、混合增长率）\n判断海海刷 前半部分（逻辑刷题2）\n判断海海刷 后半部分（逻辑刷题2）\n资料夸夸刷第7节 前半部分（比重）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-10","week":"周六","type":"周六","stage":"基础期","xc":"资料思维导图默写（年均间隔乘积混合增长率）+红笔批改\n默写花生逻辑全部思维导图+批改\n高照速算3页纸\n百化分练习\n资料夸夸刷第7节 后半部分（比重）\n默写图推全部思维导图+批改\n判断海海刷（逻辑刷题4）","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-10-11","week":"周日","type":"周日学习","stage":"基础期","xc":"判断海海刷（逻辑刷题3）\n图推夸夸刷第2节 前半部分（黑白块专项+模型2）\n高照速算3页纸\n百化分练习\n程意判断第11节 前2/3（类比推理1）\n图推夸夸刷第2节 后半部分（黑白块专项+模型2）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-10-12","week":"周一","type":"工作日","stage":"强化期","xc":"资料夸夸刷第8节（平均数）\n图推夸夸刷第3节 前2/3（黑白块专项+模型3）\n高照速算3页纸\n百化分练习\n程意判断第11节 全部学完（类比推理1）\n判断海海刷（逻辑刷题5）\n资料夸夸刷第9节 前半部分（倍数）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-13","week":"周二","type":"工作日","stage":"强化期","xc":"默写逻辑全部思维导图+批改\n图推夸夸刷第3节 学完（黑白块专项+模型3）\n资料夸夸刷第9节 后半部分（倍数）\n程意判断第12节（类比推理2）\n高照速算3页纸\n百化分练习","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-14","week":"周三","type":"工作日","stage":"强化期","xc":"资料思维导图默写（比重平均数倍数）+红笔批改\n资料夸夸刷第10节（切入点与易错点）\n(3+2作业)判断第12节（类比推理2）（讲义二刷+复盘）\n(3+2作业)判断第11节（类比推理1）（讲义二刷+复盘）\n高照速算3页纸\n百化分练习\n图推夸夸刷第4节 前半部分（黑白块专项+模型串讲）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-15","week":"周四","type":"工作日","stage":"强化期","xc":"高照速算3页纸\n百化分练习\n程意判断第13节（类比推理3+定义判断1）\n资料夸夸刷第1-3节错题二刷+复盘总结\n图推夸夸刷第4节 后半部分（黑白块专项+模型串讲）\n程意判断第14节（定义判断2）\n资料夸夸刷第4-6节错题二刷+复盘总结","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-16","week":"周五","type":"工作日","stage":"强化期","xc":"判断海海刷（逻辑刷题6）前半部分\n(3+2作业)判断第13节（类比推理3+定义判断1）（讲义二刷+复盘）\n判断海海刷（逻辑刷题6）后半部分\n图推夸夸刷前4节 错题二刷+复盘总结\n默写图推全部思维导图+批改","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-17","week":"周六","type":"周六","stage":"强化期","xc":"资料夸夸刷第7-10节错题二刷+复盘总结\n图推夸夸刷第5节 前半部分（“3+3”专项刷题1）\n判断海海刷 逻辑前3节 错题二刷+复盘总结\n判断类比、定义夸夸刷 分别10题（计时做题+复盘）\n判断海海刷 逻辑后3节 错题二刷+复盘总结\n高照速算3页纸\n百化分练习\n默写类比、定义思维导图+批改","sl":"","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-10-18","week":"周日","type":"周日学习","stage":"强化期","xc":"资料超大杯15-20题+复盘（计时做题+听视频复盘）\n图推夸夸刷第5节 后半部分（“3+3”专项刷题1）\n判断海海刷（判断套题1）\n判断海海刷（判断套题2）","sl":"","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-10-19","week":"周一","type":"工作日","stage":"强化期","xc":"高照速算3页纸\n百化分练习\n资料超大杯10题+复盘（计时做题+听视频复盘）\n张弓言语 课后练习1\n张弓言语第1节（中心理解解释关系与新旧关系）\n默写逻辑全部思维导图+红笔批改","sl":"白鹭归纳概括基础课1+2+3（听课+记笔记）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-20","week":"周二","type":"工作日","stage":"强化期","xc":"图推夸夸刷第6节 前半部分（“3+3”专项刷题2）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n图推夸夸刷第6节 后半部分（“3+3”专项刷题2）\n判断定义、类比夸夸刷 分别10题（计时做题+复盘）","sl":"5.15 归纳概括学生用题（预习+听视频复盘）\n5.15归纳概括 三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-21","week":"周三","type":"工作日","stage":"强化期","xc":"张弓言语第2节（中心理解的主题词与强调关系）\n高照数量第1节（倍数特性）\n张弓言语 课后练习2\n花生逻辑600题 20题+复盘\n(3+2作业)数量第1节（倍数）\n高照数量第1节（倍数特性）——课后习题","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-22","week":"周四","type":"工作日","stage":"强化期","xc":"张弓言语第3节（中心理解转折关系与因果关系）\n图推夸夸刷第7节（空间专项1）\n张弓言语 课后练习3\n花生逻辑600题20题+复盘\n资料超大杯15-20题+复盘（计时做题+听视频复盘）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-23","week":"周五","type":"工作日","stage":"强化期","xc":"张弓言语课后练习4\n张弓言语第4节（中心理解题的对策类文段）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n资料、判断不熟的思维导图默写+红笔批改","sl":"5.18归纳概括学生用题（预习+听视频复盘）\n5.18归纳概括三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-24","week":"周六","type":"周六","stage":"强化期","xc":"高照数量第2节（方程）\n高照数量第2节（方程问题）——课后习题\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n资料最近刷过的题错题二刷+复盘总结\n判断海海刷（判断套题3）\n张弓言语第5节（中心理解并列关系与细节判断）\n张弓言语 课后练习5\n图推夸刷第8节 前半部分（空间专项2）","sl":"","hours":8,"done":"未开始","note":"周六 8h（数量第2节+资料超大杯由10.25提前）"},{"date":"2026-10-25","week":"周日","type":"周日学习","stage":"强化期","xc":"张弓言语第6节（正确认识后文推断题与语句填空）\n张弓言语 课后练习6\n【摸底】行测套题首套：计时2小时做题+复盘（标记强弱模块，可不限时）","sl":"白鹭对策建议基础课（听课+记笔记）","hours":8,"done":"未开始","note":"摸底整卷日：行测套题首套提前至此（周日多学2h，可自行取舍）"},{"date":"2026-10-26","week":"周一","type":"工作日","stage":"强化期","xc":"(3+2作业)数量第2节（方程）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n图推夸刷第8节 后半部分（空间专项2）\n判断定义、类比夸刷 分别10题（计时做题+复盘）\n判断类比夸夸刷10-15题（计时做题+复盘）","sl":"5.22 对策建议学生用题（预习+听视频复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-27","week":"周二","type":"工作日","stage":"强化期","xc":"张弓言语第7节（正确认识语句排序题）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n张弓言语 课后练习7\n张弓言语第8节（选词填空句内分析和全文理解）","sl":"5.22 对策建议 二道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-28","week":"周三","type":"工作日","stage":"强化期","xc":"张弓言语 课后练习8\n图推综合刷题10-20题（计时做题+复盘）\n判断海海刷（判断套题4）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n判断定义夸夸刷10-15题（计时做题+复盘）\n张弓言语第9节（选词填空之常考的并列关系）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-29","week":"周四","type":"工作日","stage":"强化期","xc":"张弓言语 课后练习9\n张弓言语第10节（选词填空转折和因果、形象表述）\n张弓言语 课后练习10\n花生逻辑600题 20题+复盘\n政治理论基础课第1节 前半部分","sl":"5.25 对策建议学生用题（预习+听视频复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-30","week":"周五","type":"工作日","stage":"强化期","xc":"高照数量第5节（几何）\n张弓言语第11节（选词填空词义侧重和搭配用法）\n张弓言语 课后练习11\n高照数量第5节（几何问题）——课后习题","sl":"5.25 对策建议 二道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-10-31","week":"周六","type":"周六","stage":"强化期","xc":"政治理论基础课第1节 后半部分\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n花生逻辑600题 20题+复盘\n张弓言语第12节（选词填空程度轻重和感情色彩）\n张弓言语 课后练习12\n花生判断 模块刷题（倒计时做题+复盘）","sl":"白鹭综合分析基础课1+2+3（听课+记笔记）","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-01","week":"周日","type":"周日学习","stage":"强化期","xc":"政治理论基础课第2节\n(3+2作业)数量第5节（几何）\n(碎片时间)高频成语词语背诵\n资料超大杯15-20题+复盘（计时做题+听视频复盘）","sl":"5.29综合分析 学生用题（预习+听视频复盘）","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-02","week":"周一","type":"工作日","stage":"强化期","xc":"(碎片时间)高频成语词语背诵\n高照数量第xx节（意向考试第3高频题型）——课后习题\n政治理论基础课第3节 前半部分\n图推综合刷题10-20题（计时做题+复盘）\n高照数量第xx节（意向考试第3高频题型）","sl":"5.29综合分析 二道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-03","week":"周二","type":"工作日","stage":"强化期","xc":"(3+2作业)数量第xx节（意向考试第3高频题型）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课第3节 后半部分\n行测（资料，判断，言语）刷过的题 错题二刷+复盘总结\n资料，判断，言语不熟的思维导图默写+红笔批改","sl":"6.1 综合分析 学生用题（预习+听视频复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-04","week":"周三","type":"工作日","stage":"强化期","xc":"政治理论基础课第4节 前半部分\n判断定义夸夸刷10题（计时做题+复盘）\n张弓言语基础课预习的错题二刷重做+复盘总结\n高照数量第xx节 前半部分（意向考试第4高频题型）\n花生逻辑600题 20题+复盘","sl":"6.1 综合分析 三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-05","week":"周四","type":"工作日","stage":"强化期","xc":"默写花生逻辑全部思维导图+批改\n政治理论基础课第4节 后半部分\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n高照数量第xx节 后半部分（意向考试第4高频题型）\n高照数量第xx节（意向考试第4高频题型）——课后习题","sl":"白鹭应用文基础课1+2（听课+记笔记）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-06","week":"周五","type":"工作日","stage":"强化期","xc":"（3+2作业）数量第xx节（意向考试第4高频题型）\n（碎片时间）高频成语词语背诵\n张弓言语 专项提升第1节\n花生判断 模块刷题（倒计时做题+复盘）","sl":"6.5 应用文 学生用题（预习+听视频复盘）\n6.5 应用文 三道作业题","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-07","week":"周六","type":"周六","stage":"强化期","xc":"政治理论基础课第5节 前半部分\n已学完的数量基础课3+2作业的错题再次三刷+复盘总结\n数量已学完的全部思维导图默写+批改\n（碎片时间）高频成语词语背诵\n政治理论基础课第5节 后半部分\n资料超大杯15-20题+复盘（计时做题+听视频复盘）","sl":"6.8 应用文 三道作业题","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-08","week":"周日","type":"周日学习","stage":"强化期","xc":"张弓言语 专项提升第2节\n政治理论基础课第6节 前半部分\n图推综合刷题 10题（计时做题+复盘）\n张弓言语 专项提升第3节","sl":"6.8 应用文 学生用题（预习+听视频复盘）","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-09","week":"周一","type":"工作日","stage":"冲刺期","xc":"行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n政治理论基础课第6节 后半部分\n政治理论基础课第7节 前半部分\n(碎片时间)高频成语词语背诵\n张弓言语 专项提升第4节\n资料超大杯10-15题+复盘（计时做题+听视频复盘）","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-10","week":"周二","type":"工作日","stage":"冲刺期","xc":"政治理论基础课第7节 后半部分\n花生判断 模块刷题（倒计时做题+复盘）\n资料超大杯10-15题+复盘（计时做题+听视频复盘）","sl":"袁东大作文第1节（标题+总论点1）\n袁东大作文第2节（标题+总论点2）\n申论概括题（已刷过的题目挑2-3题二刷重做+复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-11","week":"周三","type":"工作日","stage":"冲刺期","xc":"张弓言语 专项提升第5节\n数量夸夸刷第1节 前半部分（倍数特性）\n(碎片时间)高频成语词语背诵\n数量夸夸刷第1节 后半部分（倍数特性）","sl":"袁东大作文第3节（大作文开头）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-12","week":"周四","type":"工作日","stage":"冲刺期","xc":"政治理论基础课第8节\n张弓言语 专项提升第6节\n(碎片时间)高频成语词语背诵\n图推综合刷题10题（计时做题+复盘）","sl":"袁东大作文第4节（分论点润色）\n申论对策建议题（已刷过的题目挑2-3题二刷重做+复盘）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-13","week":"周五","type":"工作日","stage":"冲刺期","xc":"资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课第8节 后半部分\n不熟悉的思维导图 挑着默写背诵+批改（酌情补充专项）\n行测错题复盘日（资料，判断，言语，数量）错题二刷\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）","sl":"袁东大作文第5节（寻找分论点1）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-14","week":"周六","type":"周六","stage":"冲刺期","xc":"(碎片时间)高频成语词语背诵\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课第9节 前半部分\n言语 模块刷题（计时刷题+复盘）","sl":"申论综合分析题（已刷过的题目挑2-3题二刷重做+复盘）\n袁东大作文第6节（寻找分论点2）","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-15","week":"周日","type":"周日学习","stage":"冲刺期","xc":"资料超大杯10题+复盘（计时做题+听视频复盘）\n政治理论基础课第9节 后半部分\n(碎片时间)高频成语词语背诵\n政治理论基础课第10节 前半部分","sl":"袁东大作文第7节（分论点论证）","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-16","week":"周一","type":"工作日","stage":"冲刺期","xc":"花生判断 模块刷题（倒计时做题+复盘）\n数量夸夸刷第2节 前半部分（方程）\n(碎片时间)高频成语词语背诵\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n数量夸夸刷第2节 后半部分（方程）","sl":"袁东大作文第8节（大作文结尾）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-17","week":"周二","type":"工作日","stage":"冲刺期","xc":"政治理论基础课第10节 后半部分\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n(碎片时间)高频成语词语背诵\n政治理论基础课/时政/刷题练习1.5小时","sl":"申论公文题（已刷过的题目挑2-3题二刷重做+复盘）\n(碎片时间)大作文素材积累背诵","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-18","week":"周三","type":"工作日","stage":"冲刺期","xc":"数量夸夸刷第4节（几何）\n(碎片时间)高频成语词语背诵\n政治理论基础课/时政/刷题练习1.5小时\n默写花生逻辑全部思维导图+批改\n花生逻辑600题20题+复盘","sl":"袁东大作文练习（单主题大作文理念真题实战）第9节","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-19","week":"周四","type":"工作日","stage":"冲刺期","xc":"资料超大杯10-15题+复盘（计时做题+听视频复盘）\n(碎片时间)高频成语词语背诵\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n行测错题复盘日（资料，判断，言语，数量）错题二刷\n政治理论基础课/时政/刷题练习1.5小时","sl":"袁东大作文练习（双主题大作文理念真题实战）第10节","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-20","week":"周五","type":"工作日","stage":"冲刺期","xc":"(选做)政治理论背诵复习\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n数量夸夸刷第xx节（意向考试第3高频题型）\n政治理论基础课/时政/刷题练习1.5小时","sl":"申论套题倒计时2.5/3小时做题+复盘（优先意向考试最近5年真题）\n(选做)政治理论背诵复习","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-21","week":"周六","type":"周六","stage":"冲刺期","xc":"(选做)政治理论背诵复习\n行测套题倒计时2小时做题+复盘（优先意向考试最近5年真题）\n(碎片时间)高频成语词语背诵","sl":"(碎片时间)大作文素材积累背诵\n袁东大作文练习（多主题大作文理念真题实战）第11节\n申论套题倒计时2.5/3小时做题+复盘（优先意向考试最近5年真题）","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-22","week":"周日","type":"周日学习","stage":"冲刺期","xc":"数量夸夸刷第xx节（意向考试第4高频题型）\n资料超大杯15-20题+复盘（计时做题+听视频复盘）\n政治理论基础课/时政/刷题练习1.5小时","sl":"(碎片时间)大作文素材积累背诵","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-23","week":"周一","type":"工作日","stage":"冲刺期","xc":"(上午9-11)行测套题计时2小时刷题（包括涂卡）\n昨天的行测申论套题 全部复盘完毕\n政治理论基础课/时政/刷题练习1.5小时","sl":"(下午2-4.30)申论套题计时2.5小时刷题（尽量写完）\n(碎片时间)大作文素材积累背诵\n晚上时间简单复盘一部分，明天继续复盘","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-24","week":"周二","type":"工作日","stage":"冲刺期","xc":"政治理论基础课/时政/刷题练习1.5小时\n(上午9-11)行测套题计时2小时刷题（包括涂卡）","sl":"(下午2-4.30)申论套题计时2.5小时刷题（尽量写完）\n(碎片时间)大作文素材积累背诵\n晚上时间简单复盘一部分，明天继续复盘","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-25","week":"周三","type":"工作日","stage":"冲刺期","xc":"昨天的行测申论套题 全部复盘完毕\n行测错题复盘日（资料，判断，言语，数量）错题二刷\n不熟悉的思维导图 挑着默写背诵+批改（酌情补充专项）\n政治理论基础课/时政/刷题练习1.5小时","sl":"(碎片时间)大作文素材积累背诵\n后续计划参考：两天一个循环（1套行测+1套申论），上午行测下午申论","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-26","week":"周四","type":"工作日","stage":"冲刺期","xc":"【全真模考】行测模考3：限时120分钟（9:00-11:00）；晚上1小时当日复盘+错题整理","sl":"【全真模考】申论模考3：限时180分钟（14:00-17:00）","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-27","week":"周五","type":"工作日","stage":"冲刺期","xc":"【总复习】错题本三刷：言语/判断/资料错题+时政冲刺；晚上1小时当日复盘+错题整理","sl":"【总复习】作文框架+开头结尾模板背诵，小题要点回顾","hours":9.5,"done":"未开始","note":"工作日 9.5h"},{"date":"2026-11-28","week":"周六","type":"周六","stage":"冲刺期","xc":"【考前梳理】公式速记、高频成语、数量必考题型；轻量保持；晚上早睡；晚上2小时周复盘","sl":"【考前梳理】作文素材速记、公文格式默写；轻量保持","hours":8,"done":"未开始","note":"周六 8h"},{"date":"2026-11-29","week":"周日","type":"周日学习","stage":"冲刺期","xc":"【考前梳理】错题本终扫、公式速记、高频成语；轻量保持，晚上早睡","sl":"【考前梳理】作文素材/公文格式最后过一遍；轻量保持","hours":6,"done":"未开始","note":"休息日：复盘+周计划"},{"date":"2026-11-30","week":"周一","type":"工作日","stage":"冲刺期","xc":"【考前梳理】错题本终扫、公式速记；轻量保持，晚上早睡","sl":"","hours":9.5,"done":"未开始","note":"工作日 9.5h"}];
 
 /* ===== 用户设置（localStorage，可在设置页修改） ===== */
-const CFG_KEY='gk72_cfg', CUSTOM_KEY='gk72_custom', REST_KEY='gk72_rest', REMOVE_KEY='gk72_remove', MOVED_KEY='gk72_moved', DELETED_KEY='gk72_deleted', NODES_KEY='gk72_nodes', EXAMLOG_KEY='gk72_examlog', DUR_KEY='gk72_dur', LASTDUR_KEY='gk72_lastdur', SHIFT_KEY='gk72_shift', RESTOPS_KEY='gk72_restops';
+const CFG_KEY='gk72_cfg', CUSTOM_KEY='gk72_custom', REST_KEY='gk72_rest', REMOVE_KEY='gk72_remove', MOVED_KEY='gk72_moved', DELETED_KEY='gk72_deleted', NODES_KEY='gk72_nodes', EXAMLOG_KEY='gk72_examlog', DUR_KEY='gk72_dur', LASTDUR_KEY='gk72_lastdur', SHIFT_KEY='gk72_shift', RESTOPS_KEY='gk72_restops', ARCHIVE_KEY='gk72_arc';
 const NODES_DEFAULT = [
   {id:'notice', name:'公告发布', start:'2026-10-14', end:'2026-10-14', desc:'官方发布公告与职位表'},
   {id:'signup', name:'网上报名', start:'2026-10-15', end:'2026-10-24', desc:'选岗报名，务必完成'},
@@ -1565,6 +1622,10 @@ let DELETED = {}; try{ DELETED = JSON.parse(localStorage.getItem(DELETED_KEY)||'
 let SHIFT = []; try{ SHIFT = JSON.parse(localStorage.getItem(SHIFT_KEY)||'[]'); }catch(e){}
 /* 休息日操作记录：{date: {moved:[{type,text}], deleted:[{type,text}], from, to}} */
 let RESTOPS = {}; try{ RESTOPS = JSON.parse(localStorage.getItem(RESTOPS_KEY)||'{}'); }catch(e){}
+/* 考后封存区：[{id, txt, type:'xc'|'sl', from:'原日期', ts}] —— 从考前日程挪出，随时可取回 */
+let ARCHIVE = [];
+try{ const a = JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'[]'); if(Array.isArray(a)) ARCHIVE = a; }catch(e){}
+function saveArchive(){ localStorage.setItem(ARCHIVE_KEY, JSON.stringify(ARCHIVE)); syncQueue(); }
 /* 格式迁移：把旧的斜杠格式日期（2026/09/20）统一转成横杠（2026-09-20） */
 REST = REST.map(d=> d.replace(/\//g,'-'));
 SHIFT = SHIFT.map(s=> ({...s, from: s.from.replace(/\//g,'-')}));
@@ -2628,7 +2689,7 @@ document.getElementById('weekSummary').addEventListener('click', e=>{
 /* 点弹窗遮罩（背景）即关闭 */
 [
   ['apMask','apCancel'],['mvMask','mvCancel'],['edMask','edCancel'],['delMask','delCancel'],
-  ['opMask','opCancel'],['cpMask','cpCancel'],['hfMask','hfCancel'],['durMask','durCancel'],['extraMask','exCancel'],['durHistMask','durHistClose'],
+  ['opMask','opCancel'],['cpMask','cpCancel'],['hfMask','hfCancel'],['durMask','durCancel'],['extraMask','exCancel'],['durHistMask','durHistClose'],['arcMask','arcCancel'],['abMask','abCancel'],
   ['wkDetailMask','wkDetailClose'],['catDetailMask','catDetailClose'],['catColorMask','catColorClose'],['mottoMask','mottoCancel'],['ckAllMask','ckAllCancel'],['ssDetailMask','ssDetailClose']
 ].forEach(p=>{
   const m = document.getElementById(p[0]);
@@ -3062,6 +3123,7 @@ function saveDone(){ localStorage.setItem(LS_KEY, JSON.stringify(doneMap)); sync
 function taskKey(date, type, text){ return date + '|' + type + '|' + text; }
 function isDone(date, type, text){ return !!doneMap[taskKey(date, type, text)]; }
 function toggleDone(date, type, text){
+  pushUndo(doneMap[taskKey(date, type, text)] ? '取消打卡' : '打卡');
   const k = taskKey(date, type, text);
   if(doneMap[k]) delete doneMap[k]; else doneMap[k] = true;
   saveDone();
@@ -3131,12 +3193,13 @@ function dayTasks(d){
   return base;
 }
 /* 任务移动：date|type|text → 任意目标日期 */
-function moveTask(date, type, text, toDate){
+function moveTask(date, type, text, toDate, skipUndo){
   if(toDate < '2026-09-17' || toDate > (CFG.exam>'2026-11-30'?CFG.exam:'2026-11-30') || toDate === CFG.exam){
     showToast(toDate===CFG.exam ? '不能移到考试日' : '超出计划区间');
     return;
   }
   if(toDate === date){ showToast('目标日期与来源相同'); return; }
+  if(!skipUndo) pushUndo('移动任务');
   if(!REMOVE[date]) REMOVE[date] = {xc:[], sl:[]};
   REMOVE[date][type].push(text);
   saveRemove();
@@ -3157,6 +3220,15 @@ function isRestDay(date){
   const slashes = date.replace(/-/g,'/');
   if(REST.includes(slashes)) return true;
   return false;
+}
+/* 该日期是否还有真正要做的任务（排除休息日占位"今日休息"和空卡），用于积压统计 */
+function hasRealTasks(date){
+  let n = 0;
+  dayTasks(date).forEach(r=>{
+    splitTasks(r.xc).forEach(t=>{ if(t.txt !== '今日休息') n++; });
+    splitTasks(r.sl).forEach(t=>{ n++; });
+  });
+  return n > 0;
 }
 function effectiveType(r, date){
   if(r.stage==='考试日') return r.type;
@@ -3294,6 +3366,7 @@ function delayStats(){
     // 排除手动休息日（兼容斜杠/横杠两种格式）
     if(REST.includes(r.date)) return false;
     if(REST.includes(r.date.replace(/-/g,'/'))) return false;
+    if(!hasRealTasks(r.date)) return false;
     return true;
   }).map(r=>r.date);
   const uniq = [...new Set(days)];
@@ -3344,6 +3417,7 @@ function renderPlanList(){
         // 排除手动休息日（兼容斜杠/横杠两种格式）
         if(REST.includes(r.date)) return false;
         if(REST.includes(r.date.replace(/-/g,'/'))) return false;
+        if(!hasRealTasks(r.date)) return false;
         return true;
       })
                               .sort((a,b)=>a.date<b.date?-1:1);
@@ -3359,13 +3433,11 @@ function renderPlanList(){
       html += emptyHTML('今天不在计划内');
     }
   } else if(planTab==='delay'){
-    const restRow = r=> !r.xc && !r.sl && isRestDay(r.date);
-    const delayed = DATA.filter(r=> r.date < now && !restRow(r) && dayStatus(r.date)!=='done');
-    const delayedRest = DATA.filter(r=> r.date < now && restRow(r) && dayStatus(r.date)!=='done');
-    if(delayed.length || delayedRest.length){
+    const delayed = DATA.filter(r=> r.date < now && dayStatus(r.date)!=='done' && hasRealTasks(r.date));
+    if(delayed.length){
       html += delayWarnHTML();
       html += '<div class="delay-hint">补卡：点任务前的圆圈补单条（可填用时）；点日期右上角"补打全部"一次完成当天。补完自动移出拖延计划。</div>';
-      [...delayed, ...delayedRest].sort((a,b)=>a.date<b.date?-1:1).forEach(r=>{ html += dayCardHTML(r.date); });
+      delayed.sort((a,b)=>a.date<b.date?-1:1).forEach(r=>{ html += dayCardHTML(r.date); });
     } else {
       html += emptyHTML('没有拖延任务，继续保持！');
     }
@@ -3432,6 +3504,8 @@ function renderPlanList(){
       html += '</div></div>';
     });
   }
+  if(planTab==='today') html = undoBarHTML() + arcTipHTML() + html;
+  html += archiveFoldHTML();
   el.innerHTML = html;
   bindCks();
 }
@@ -3465,6 +3539,23 @@ function durCardHTML(date){
     '<div class="dur-hist-link" id="durHistLink">查看每日学习时长历史 ›</div></div>';
 }
 function bindCks(){
+  const arcHeadEl = document.getElementById('arcHead');
+  if(arcHeadEl) arcHeadEl.onclick = ()=>{
+    const f = document.getElementById('arcFold');
+    if(f) f.classList.toggle('open');
+  };
+  document.querySelectorAll('.arc-btn[data-arc]').forEach(b=>{
+    b.onclick = (e)=>{ e.stopPropagation(); askRestoreArc(b.dataset.arc); };
+  });
+  const arcBatchBtn = document.getElementById('arcBatch');
+  if(arcBatchBtn) arcBatchBtn.onclick = (e)=>{ e.stopPropagation(); openBatchArchive(); };
+  const arcUndoBtn = document.getElementById('arcUndo');
+  if(arcUndoBtn) arcUndoBtn.onclick = (e)=>{ e.stopPropagation(); undoLastBatch(); };
+  document.querySelectorAll('[data-undo-batch]').forEach(b=>{
+    b.onclick = (e)=>{ e.stopPropagation(); undoBatch(+b.dataset.undoBatch); };
+  });
+  const undoBtnEl = document.getElementById('undoBtn');
+  if(undoBtnEl) undoBtnEl.onclick = (e)=>{ e.stopPropagation(); undoLast(); };
   const delayFoldHead = document.getElementById('delayFoldHead');
   if(delayFoldHead) delayFoldHead.onclick = ()=>{
     const f = document.getElementById('delayFold');
@@ -3576,6 +3667,7 @@ function askDur(date, type, text){
   const k = date+'|'+type+'|'+text;
   // 已完成的点一下 = 取消完成，并移除该任务用时
   if(doneMap[k]){
+    pushUndo('取消打卡');
     delete doneMap[k];
     // 取消完成：精确删除该任务记过的时长（原日期无标记 / 任意日期带补自或提前做标记）
     delTaskDurAny(date, type, text);
@@ -3611,6 +3703,7 @@ function askDur(date, type, text){
 }
 function confirmDur(){
   if(!pendingDur) return;
+  pushUndo('记学习时长');
   const p = pendingDur;
   const h = parseInt(document.getElementById('durHour').value)||0;
   const m = parseInt(document.getElementById('durMin').value)||0;
@@ -3674,6 +3767,7 @@ function askCkAll(date){
 }
 function confirmCkAll(){
   if(!pendingCkAll) return;
+  pushUndo('补打全部');
   const date = pendingCkAll;
   document.getElementById('ckAllMask').style.display = 'none';
   pendingCkAll = null;
@@ -3959,6 +4053,241 @@ function opHalf(){
   document.getElementById('opMask').style.display = 'none';
   if(pendingOp){ const p=pendingOp; pendingOp=null; askHalf(p.date, p.type, p.text); }
 }
+function opArchive(){
+  document.getElementById('opMask').style.display = 'none';
+  if(pendingOp){ const p=pendingOp; pendingOp=null; archiveTask(p.date, p.type, p.text); }
+}
+/* ===== 撤销上一步：删除/编辑/移动/打卡/时长/封存/休息日都留了一手 ===== */
+const UNDO_KEY = 'gk72_undo';
+let UNDO = [];
+try{ const u = JSON.parse(localStorage.getItem(UNDO_KEY)||'[]'); if(Array.isArray(u)) UNDO = u; }catch(e){ UNDO = []; }
+function undoStateKeys(){ return [CUSTOM_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, LS_KEY, DUR_KEY, PROG_KEY, ARCHIVE_KEY, REST_KEY, RESTOPS_KEY, SHIFT_KEY]; }
+function saveUndo(){
+  try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }
+  catch(e){ UNDO = UNDO.slice(-2); try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }catch(_){} }
+}
+/* 任何会动数据、写不通的操作前先存一份快照 */
+function pushUndo(label){
+  const data = {};
+  undoStateKeys().forEach(k=>{ data[k] = localStorage.getItem(k); });
+  UNDO.push({label:label, ts:Date.now(), data:data});
+  while(UNDO.length > 6) UNDO.shift();
+  saveUndo();
+}
+function undoLastLabel(){ return UNDO.length ? UNDO[UNDO.length-1].label : ''; }
+function reloadStateFromStorage(){
+  try{ CUSTOM = JSON.parse(localStorage.getItem(CUSTOM_KEY)||'{}'); }catch(e){ CUSTOM = {}; }
+  try{ REMOVE = JSON.parse(localStorage.getItem(REMOVE_KEY)||'{}'); }catch(e){ REMOVE = {}; }
+  try{ MOVED = JSON.parse(localStorage.getItem(MOVED_KEY)||'{}'); }catch(e){ MOVED = {}; }
+  try{ DELETED = JSON.parse(localStorage.getItem(DELETED_KEY)||'{}'); }catch(e){ DELETED = {}; }
+  try{ doneMap = JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch(e){ doneMap = {}; }
+  try{ DUR = JSON.parse(localStorage.getItem(DUR_KEY)||'{}'); }catch(e){ DUR = {}; }
+  try{ PROGRESS = JSON.parse(localStorage.getItem(PROG_KEY)||'{}'); }catch(e){ PROGRESS = {}; }
+  try{ const a = JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'[]'); ARCHIVE = Array.isArray(a) ? a : []; }catch(e){ ARCHIVE = []; }
+  try{ REST = JSON.parse(localStorage.getItem(REST_KEY)||'[]'); }catch(e){ REST = []; }
+  try{ RESTOPS = JSON.parse(localStorage.getItem(RESTOPS_KEY)||'{}'); }catch(e){ RESTOPS = {}; }
+  try{ SHIFT = JSON.parse(localStorage.getItem(SHIFT_KEY)||'[]'); }catch(e){ SHIFT = []; }
+}
+function undoLast(){
+  if(!UNDO.length){ showToast('没有可以撤销的操作'); return; }
+  const fr = UNDO.pop();
+  Object.keys(fr.data).forEach(k=>{
+    const v = fr.data[k];
+    if(v===null || v===undefined) localStorage.removeItem(k); else localStorage.setItem(k, v);
+  });
+  saveUndo();
+  reloadStateFromStorage();
+  refreshAll();
+  if(typeof renderDurMgmt === 'function') renderDurMgmt();
+  const h = document.getElementById('durHistMask');
+  if(h && h.style.display==='flex' && typeof renderDurHist === 'function') renderDurHist();
+  showToast('已撤销：'+fr.label);
+}
+function undoBarHTML(){
+  if(!UNDO.length) return '';
+  return '<div class="undo-bar"><span class="undo-txt">↩ 上一步：'+escHtml(undoLastLabel())+'</span><button class="undo-btn" id="undoBtn">撤销</button></div>';
+}
+function renderUndoHint(){
+  const el = document.getElementById('undoHint');
+  if(!el) return;
+  el.textContent = UNDO.length ? ('最近可撤销：'+undoLastLabel()+'（还能撤 '+UNDO.length+' 步）') : '目前没有可撤销的操作';
+}
+/* ===== 考后封存：从考前日程挪出，数据保留，随时可取回 ===== */
+let pendingArc = null;
+/* 单条封存的底层动作：只挪未完成任务，不动打卡记录 */
+function stripCatOf(line){
+  const m = String(line||'').match(/^【([^】]+)】\s*(.*)$/);
+  return m ? m[2] : String(line||'');
+}
+/* 找到含该任务的原始行（基础任务可能带【分类】前缀），删除标记要按原始行匹配 */
+function rawLineOf(date, type, txt){
+  const rows = dayTasks(date);
+  for(const r of rows){
+    const lines = (r[type]||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    for(const ln of lines){ if(stripCatOf(ln) === txt) return ln; }
+  }
+  return txt;
+}
+function archiveCore(date, type, text, batch){
+  const inCustom = CUSTOM[date] && (CUSTOM[date][type]||[]).indexOf(text) > -1;
+  if(inCustom){
+    CUSTOM[date][type] = CUSTOM[date][type].filter(t=>t!==text);
+    if(!CUSTOM[date].xc.length && !CUSTOM[date].sl.length) delete CUSTOM[date];
+    saveCustom();
+  } else {
+    const raw = rawLineOf(date, type, text);
+    if(!DELETED[date]) DELETED[date] = {xc:[], sl:[]};
+    if(!DELETED[date][type].includes(raw)) DELETED[date][type].push(raw);
+    saveDeleted();
+  }
+  const mk = date+'|'+type+'|'+text;
+  if(MOVED[mk]){ delete MOVED[mk]; saveMoved(); }
+  ARCHIVE.push({id:'a'+Date.now()+Math.floor(Math.random()*1000), txt:text, type:type, from:date, ts:Date.now(), batch:batch||0});
+}
+function archiveTask(date, type, text){
+  pushUndo('封存任务');
+  archiveCore(date, type, text, 0);
+  saveArchive();
+  refreshAll();
+  showToast('已封存，可到“考后封存区”取回');
+}
+/* 把一条封存任务放回某天：若回原日期且是基础任务，优先撤销删除标记，不产生重复 */
+function restoreItem(it, toDate){
+  const del = DELETED[toDate];
+  if(toDate === it.from && del && (del[it.type]||[]).some(ln=>stripCatOf(ln)===it.txt)){
+    del[it.type] = del[it.type].filter(ln=>stripCatOf(ln)!==it.txt);
+    saveDeleted();
+  } else {
+    if(!CUSTOM[toDate]) CUSTOM[toDate] = {xc:[], sl:[]};
+    CUSTOM[toDate][it.type].push(it.txt);
+    saveCustom();
+  }
+}
+function askRestoreArc(id){
+  const it = ARCHIVE.find(a=>a.id===id);
+  if(!it) return;
+  pendingArc = it;
+  document.getElementById('arcTask').textContent = (it.type==='sl'?'【申论】':'【行测】')+it.txt;
+  const inp = document.getElementById('arcDate');
+  inp.value = todayStr();
+  inp.min = '2026-09-17';
+  inp.max = maxPlanDate();
+  document.getElementById('arcMask').style.display = 'flex';
+}
+function confirmRestoreArc(){
+  if(!pendingArc) return;
+  const it = pendingArc;
+  const toDate = document.getElementById('arcDate').value;
+  if(!toDate){ showToast('先选一个日期'); return; }
+  if(toDate === CFG.exam){ showToast('不能放到考试日'); return; }
+  if(toDate < '2026-09-17' || toDate > maxPlanDate()){ showToast('超出计划区间'); return; }
+  restoreItem(it, toDate);
+  ARCHIVE = ARCHIVE.filter(a=>a.id !== it.id);
+  saveArchive();
+  pendingArc = null;
+  document.getElementById('arcMask').style.display = 'none';
+  refreshAll();
+  showToast('已取回到 '+toDate.slice(5).replace('-','/'));
+}
+/* 收集某个日期区间内所有“未完成”任务（跳过考试日与休息日占位） */
+function collectUnfinished(startDate, endDate){
+  const res = [];
+  if(endDate < startDate) return res;
+  let d = startDate;
+  while(d <= endDate){
+    if(d !== CFG.exam){
+      const rows = dayTasks(d);
+      rows.forEach(r=>{
+        splitTasks(r.xc).forEach(t=>{
+          if(t.txt !== '今日休息' && !isDone(d,'xc',t.txt)) res.push({date:d, type:'xc', text:t.txt});
+        });
+        splitTasks(r.sl).forEach(t=>{
+          if(!isDone(d,'sl',t.txt)) res.push({date:d, type:'sl', text:t.txt});
+        });
+      });
+    }
+    const dt = parseDate(d); dt.setDate(dt.getDate()+1); d = fmtDate(dt);
+  }
+  return res;
+}
+function shiftDateStr(ds, n){
+  const dt = parseDate(ds); dt.setDate(dt.getDate()+n); return fmtDate(dt);
+}
+function openBatchArchive(){
+  const today = todayStr();
+  const past = collectUnfinished('2026-09-17', shiftDateStr(today,-1));
+  const future = collectUnfinished(shiftDateStr(today,1), maxPlanDate());
+  const b1 = document.getElementById('abPast'), b2 = document.getElementById('abFuture');
+  b1.textContent = '封存全部拖延任务（'+past.length+' 条）';
+  b2.textContent = '封存今天之后全部任务（'+future.length+' 条）';
+  b1.disabled = !past.length;
+  b2.disabled = !future.length;
+  document.getElementById('abMask').style.display = 'flex';
+}
+function doBatchArchive(mode){
+  const today = todayStr();
+  const list = mode==='past'
+    ? collectUnfinished('2026-09-17', shiftDateStr(today,-1))
+    : collectUnfinished(shiftDateStr(today,1), maxPlanDate());
+  if(!list.length){ showToast('这个范围里没有未完成的任务'); return; }
+  pushUndo('批量封存');
+  const batch = Date.now();
+  list.forEach(it=> archiveCore(it.date, it.type, it.text, batch));
+  saveArchive();
+  document.getElementById('abMask').style.display = 'none';
+  refreshAll();
+  showToast('已封存 '+list.length+' 条，可点“撤销最近一批”还原');
+}
+function undoBatch(batch){
+  if(!batch){ showToast('这些是逐条封存的，请用右边的「取回」'); return; }
+  const list = ARCHIVE.filter(a=>(a.batch||0)===batch);
+  if(!list.length) return;
+  list.forEach(it=> restoreItem(it, it.from));
+  ARCHIVE = ARCHIVE.filter(a=>(a.batch||0)!==batch);
+  saveArchive();
+  refreshAll();
+  showToast('已撤销这一批 '+list.length+' 条，回到原来的日期');
+}
+function undoLastBatch(){
+  if(!ARCHIVE.length) return;
+  const batch = ARCHIVE.reduce((m,a)=>Math.max(m, a.batch||0), 0);
+  undoBatch(batch);
+}
+function arcBatchLabel(ts){
+  const d = new Date(ts||Date.now());
+  const pad = n=>String(n).padStart(2,'0');
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function archiveFoldHTML(){
+  const items = ARCHIVE.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  // 按批次分组（batch=0 = 逐条封存）
+  const map = {};
+  items.forEach(a=>{
+    const b = a.batch||0;
+    if(!map[b]) map[b] = {batch:b, n:0, ts:0};
+    map[b].n++;
+    if((a.ts||0) > map[b].ts) map[b].ts = a.ts||0;
+  });
+  const batches = Object.keys(map).map(k=>map[k]).filter(b=>b.batch).sort((x,y)=>y.ts-x.ts);
+  const loose = map[0] ? map[0].n : 0;
+  const batchRows = batches.map(b=>
+    '<div class="arc-bbatch"><span class="arc-btime">'+arcBatchLabel(b.ts)+' 封存 · '+b.n+' 条</span>'+
+    '<button class="arc-undo-mini" data-undo-batch="'+b.batch+'">撤销这批</button></div>').join('');
+  return '<div class="arc-fold" id="arcFold">'+
+    '<div class="arc-head" id="arcHead"><span class="arc-arrow">▸</span><span>'+(items.length?('考后封存区（'+items.length+' 条）'):'考后封存区（空）')+'</span>'+
+      '<button class="arc-mini" id="arcBatch">批量封存</button></div>'+
+    '<div class="arc-body">'+
+    '<div class="arc-hint">已从考前的日程里挪出，内容都还在，随时可以取回到任意一天。</div>'+
+    batchRows+
+    (loose? '<div class="arc-loose">另有 '+loose+' 条是逐条封存的，用下面的「取回」逐条处理。</div>':'')+
+    items.map(a=>'<div class="arc-item"><div class="arc-txt"><span class="arc-tag">'+(a.type==='sl'?'申论':'行测')+'</span>'+escHtml(a.txt)+'</div><button class="arc-btn" data-arc="'+a.id+'">取回</button></div>').join('')+
+    '</div></div>';
+}
+function arcTipHTML(){
+  if(!ARCHIVE.length) return '';
+  if(!(CFG.exam && todayStr() > CFG.exam)) return '';
+  return '<div class="arc-tip-bar">笔试结束啦～封存区还有 '+ARCHIVE.length+' 条任务，点下面的「考后封存区」挑要用的排进来。</div>';
+}
 /* ===== 复制任务（原件保留，可同时改内容） ===== */
 let pendingCopy = null;
 let cpDates = [];
@@ -4114,6 +4443,7 @@ function confirmEdit(){
   document.getElementById('edMask').style.display = 'none';
   if(!newText){ showToast('任务内容不能为空'); pendingEdit=null; return; }
   if(newText===text){ pendingEdit=null; return; }
+  pushUndo('编辑任务');
   // 基础任务（不在 CUSTOM/REMOVE）→ 删除原文本 + 新增为自定义任务
   const inCustom = CUSTOM[date] && (CUSTOM[date][type]||[]).includes(text);
   const inRemove = REMOVE[date] && (REMOVE[date][type]||[]).includes(text);
@@ -4142,6 +4472,7 @@ function askDelete(date, type, text){
 }
 function confirmDelete(){
   if(!pendingDel) return;
+  pushUndo('删除任务');
   const {date, type, text} = pendingDel;
   document.getElementById('delMask').style.display = 'none';
   // 自定义任务：遍历 CUSTOM，用 splitTasks 解析后比较 txt，找到实际存储的完整文本
@@ -4427,7 +4758,7 @@ function go(route){
   if(route==='weekly') { renderSz(); renderWeekly(); renderCatHours(); renderTrend(); }
   window.scrollTo(0,0);
 }
-function refreshAll(){ renderMotto(); renderPlanList(); refreshProgress(); renderCalendar(); }
+function refreshAll(){ renderMotto(); renderPlanList(); refreshProgress(); renderCalendar(); renderUndoHint(); }
 
 /* ===== 云同步（GitHub Gist 当云端仓库） ===== */
 const SYNC_KEY='gk72_sync', SYNC_TS_KEY='gk72_syncts';
@@ -4705,6 +5036,7 @@ document.getElementById('restConfirmCancel').onclick = ()=>{ document.getElement
 /* 全部后移一天：整体平移 */
 document.getElementById('restShiftAll').onclick = ()=>{
   const d = _restPick;
+  pushUndo('设为休息日');
   SHIFT.push({from:d, days:1});
   saveShift();
   if(!REST.includes(d)){
@@ -4749,10 +5081,11 @@ document.getElementById('restConfirmOk').onclick = ()=>{
   const d = _restPick;
   const tomorrow = fmtDate(new Date(parseDate(d).getTime() + 86400000));
   const moved = [];
+  pushUndo('设为休息日（移动任务）');
   document.querySelectorAll('.rest-task-cb').forEach(cb=>{
     const date = cb.dataset.date, type = cb.dataset.type, text = cb.dataset.txt;
     if(cb.checked){
-      moveTask(date, type, text, tomorrow);
+      moveTask(date, type, text, tomorrow, true);
       moved.push({type, text});
     }
   });
@@ -4974,8 +5307,9 @@ document.getElementById('shiftOk').onclick = ()=>{
   if(!checked.length){ showToast('请至少勾选一个任务'); return; }
   if(!target || target < '2026-09-17' || target > '2026-11-29'){ showToast('请选有效目标日期'); return; }
   let count = 0;
+  pushUndo('批量移动任务');
   checked.forEach(cb=>{
-    moveTask(cb.dataset.date, cb.dataset.type, cb.dataset.txt, target);
+    moveTask(cb.dataset.date, cb.dataset.type, cb.dataset.txt, target, true);
     count++;
   });
   document.getElementById('shiftMask').style.display='none';
@@ -4984,7 +5318,7 @@ document.getElementById('shiftOk').onclick = ()=>{
 };
 
 /* ===== 数据备份 ===== */
-const BK_KEYS = [CFG_KEY, CUSTOM_KEY, REST_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, NODES_KEY, EXAMLOG_KEY, SZ_KEY, SS_KEY, DUR_KEY, LS_KEY, COLORS_KEY, LASTDUR_KEY, TIMER_KEY, SHIFT_KEY, RESTOPS_KEY];
+const BK_KEYS = [CFG_KEY, CUSTOM_KEY, REST_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, NODES_KEY, EXAMLOG_KEY, SZ_KEY, SS_KEY, DUR_KEY, LS_KEY, COLORS_KEY, LASTDUR_KEY, TIMER_KEY, SHIFT_KEY, RESTOPS_KEY, ARCHIVE_KEY];
 function exportBackup(){
   const data = {};
   BK_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) data[k]=v; });
@@ -5108,6 +5442,12 @@ document.getElementById('edOk').onclick = confirmEdit;
 document.getElementById('delCancel').onclick = ()=>{ document.getElementById('delMask').style.display='none'; pendingDel=null; };
 document.getElementById('delOk').onclick = confirmDelete;
 document.getElementById('opEdit').onclick = opEdit;
+document.getElementById('opArchive').onclick = opArchive;
+document.getElementById('arcCancel').onclick = ()=>{ document.getElementById('arcMask').style.display='none'; pendingArc=null; };
+document.getElementById('arcOk').onclick = confirmRestoreArc;
+document.getElementById('abCancel').onclick = ()=>{ document.getElementById('abMask').style.display='none'; };
+document.getElementById('abPast').onclick = ()=>doBatchArchive('past');
+document.getElementById('abFuture').onclick = ()=>doBatchArchive('future');
 document.getElementById('opDel').onclick = opDel;
 document.getElementById('opCancel').onclick = ()=>{ document.getElementById('opMask').style.display='none'; pendingOp=null; };
 document.getElementById('mvOk').onclick = confirmMove;
@@ -5171,6 +5511,7 @@ function renderDurMgmt(){
 }
 function stepDur(ek, step){
   const k = decodeURIComponent(ek);
+  pushUndo('调整学习时长');
   const d = todayStr();
   if(!DUR[d]) DUR[d] = {};
   const cur = +DUR[d][k]||0;
@@ -5316,6 +5657,7 @@ document.querySelectorAll('#durQuick .dur-q').forEach(b=>{
 });
 document.getElementById('durSkip').onclick = ()=>{
   if(!pendingDur) return;
+  pushUndo('打卡（未记时长）');
   const p = pendingDur;
   document.getElementById('durMask').style.display = 'none';
   pendingDur = null;
@@ -5369,6 +5711,7 @@ document.getElementById('nodesSave').onclick = saveNodesForm;
 document.getElementById('nodesReset').onclick = resetNodes;
 document.getElementById('elAdd').onclick = addExamLog;
 document.getElementById('bkExport').onclick = exportBackup;
+document.getElementById('undoBtnSet').onclick = undoLast;
 document.getElementById('bkImportBtn').onclick = ()=>{ document.getElementById('bkFile').click(); };
 document.getElementById('bkFile').onchange = ()=>{ if(document.getElementById('bkFile').files.length) importBackup(document.getElementById('bkFile').files[0]); document.getElementById('bkFile').value=''; };
 /* 回到顶部 */
