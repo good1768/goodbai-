@@ -203,6 +203,25 @@ body{
 .undo-bar{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:7px 12px;border-radius:10px;background:#F4F8F5;border:1px solid #DFEAE2;font-size:11.5px;color:#4B7361}
 .undo-bar .undo-txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .undo-btn{flex:0 0 auto;border:none;background:var(--primary);color:#fff;font-size:11.5px;font-weight:700;padding:4px 13px;border-radius:999px;cursor:pointer}
+.undo-more{flex:0 0 auto;border:none;background:none;color:#5B7A6A;font-size:11px;padding:3px 2px;cursor:pointer;text-decoration:underline}
+.trash-entry{display:inline-flex;align-items:center;gap:7px;margin:14px 0 24px;padding:8px 13px;border-radius:12px;background:#F3F9F5;border:1px solid #DCEBE2;font-size:12.5px;color:#35624C;cursor:pointer;max-width:100%}
+.trash-entry .te-ico{font-size:13.5px}
+.trash-entry .te-txt{color:inherit}
+.trash-entry .te-go{color:#2C7A55;font-size:11.5px}
+.trash-entry.empty{background:#FAFCFB;border-color:#EDF3EF;color:#8AA396}
+.trash-entry.empty .te-go{color:#9AB0A5}
+.trash-row{padding:9px 0;border-bottom:1px solid #EEF6F1}
+.trash-main{display:flex;gap:6px;align-items:baseline;font-size:12.5px;color:#3F5A4D;line-height:1.5}
+.trash-tag{flex:0 0 auto;font-size:10.5px;padding:1px 5px;border-radius:4px;background:#EDF5F0;color:#3C7A5B}
+.trash-txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.trash-meta{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:10.5px;color:#8AA396}
+.trash-btns{margin-left:auto;display:flex;gap:6px}
+.trash-btn{border:1px solid #C3DCCC;background:#fff;color:#2C7A55;font-size:10.5px;padding:3px 9px;border-radius:999px;cursor:pointer}
+.trash-btn.del{border-color:#E8C9C9;color:#B4544E}
+.undo-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #EEF6F1}
+.undo-rl{flex:1;min-width:0;font-size:12.5px;color:#3F5A4D;line-height:1.4}
+.undo-rl i{display:block;font-style:normal;font-size:10.5px;color:#8AA396;margin-top:2px}
+.undo-row-btn{flex:0 0 auto;border:1px solid #C3DCCC;background:#fff;color:#2C7A55;font-size:11px;padding:5px 10px;border-radius:999px;cursor:pointer}
 /* 标签栏：拖延计划醒目黄色 */
 #planTabs button[data-tab="delay"]{color:#C07D18;font-weight:700}
 #planTabs button[data-tab="delay"] .n{color:#C07D18;background:#FFF0CF;border-radius:8px;padding:0 5px;opacity:1}
@@ -636,6 +655,13 @@ body{
 .modal-task{font-size:13.5px;color:var(--ink);line-height:1.6;background:var(--primary-soft);border-radius:10px;padding:10px 12px;max-height:72px;overflow:auto}
 .modal-hint{font-size:12.5px;color:var(--primary);font-weight:700;margin-top:10px}
 .modal-date{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:8px;background:#fff;color:var(--ink)}
+.imp-entry{display:flex;align-items:center;gap:6px;margin:8px 0 2px;padding:9px 12px;border:1px dashed #C3DCCC;border-radius:10px;background:#F6FBF8;color:#2C7A55;font-size:12px;cursor:pointer}
+.imp-entry span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-entry i{font-style:normal;opacity:.6;font-size:11px}
+.imp-ta{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;height:132px;margin-top:8px;resize:vertical;background:#fff;color:var(--ink);font-family:inherit}
+.imp-modes{display:flex;gap:14px;margin-top:9px;font-size:12px;color:var(--ink2);flex-wrap:wrap}
+.imp-modes label{display:flex;align-items:center;gap:4px}
+.imp-prev{margin-top:9px;font-size:11.5px;color:#2C7A55;line-height:1.5;min-height:16px}
 .modal-btns{display:flex;gap:10px;margin-top:16px}
 .modal-btns button{flex:1;border:none;border-radius:11px;font-size:14px;font-weight:700;padding:11px 0;cursor:pointer}
 /* 增加计划-科目选择 */
@@ -815,6 +841,7 @@ body.narrow .tune{gap:10px!important}
       <button class="tab-add" data-tune="1" title="增加计划">＋</button>
     </div>
     <div id="planList"></div>
+    <div class="imp-entry" id="impEntry">📷 <span>导入纸质计划：拍照后把文字贴进来，一行一条</span><i>›</i></div>
 
     <div class="tune">
       <button data-tune="2"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>休息设置</button>
@@ -840,6 +867,8 @@ body.narrow .tune{gap:10px!important}
       </div>
       <div class="st-tip" id="streakTip">今天完成全部任务，连续天数 +1</div>
     </div>
+
+    <div id="trashSlot"></div>
   </section>
 
   <!-- ===== 视图：日历 ===== -->
@@ -1065,6 +1094,7 @@ body.narrow .tune{gap:10px!important}
       <input type="file" id="bkFile" accept=".json,application/json" style="display:none">
       <button class="set-btn ghost" id="undoBtnSet" style="margin-top:8px">↩ 撤销上一步操作</button>
       <div style="font-size:11px;color:var(--ink2);margin-top:8px" id="undoHint">目前没有可撤销的操作</div>
+      <button class="set-btn ghost" id="undoLogBtn" style="margin-top:8px">查看撤销记录（可选撤销某一步）</button>
       <div style="font-size:11px;color:var(--ink2);margin-top:8px">导入会覆盖当前设备上的全部数据，请确认备份文件是最新的。</div>
     </div>
 
@@ -1267,6 +1297,54 @@ body.narrow .tune{gap:10px!important}
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" id="abCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="trashMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="trashTitle">回收站</div>
+    <div class="modal-body">
+      <div class="modal-hint" style="font-weight:400">删掉的任务和速算记录都留在这里，不用马上撤销也能随时恢复；不想要的可以「彻底删」。</div>
+      <div id="trashBody" style="margin-top:6px;max-height:46vh;overflow:auto"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="trashClear" type="button">清空</button>
+      <button class="modal-ok" id="trashClose" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="undoListMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">撤销记录</div>
+    <div class="modal-body">
+      <div class="modal-hint" style="font-weight:400">最近 6 步操作。点某一步的「回到这之前」，会把这一步连同它之后的操作一起回退。</div>
+      <div id="undoListBody" style="margin-top:6px"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="undoListClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="impMask" style="display:none">
+  <div class="modal">
+    <div class="modal-title">导入纸质计划</div>
+    <div class="modal-body">
+      <div class="modal-hint" style="font-weight:400">一行一条任务。以「11月24日」「11-24」开头的行会切换日期，其他行加到下面选的日期。写「【套题模考】…」可带上类别标签。</div>
+      <input type="date" class="modal-date" id="impDate" min="2026-09-17" max="2026-11-30">
+      <textarea class="imp-ta" id="impText" placeholder="11月24日&#10;政治理论/时政/刷题 1.5小时&#10;【套题模考】行测套题计时2小时（含涂卡）&#10;【申论】申论套题计时2.5小时&#10;晚上复盘一部分"></textarea>
+      <div class="imp-modes">
+        <label><input type="radio" name="impMode" value="auto" checked> 自动分行测/申论</label>
+        <label><input type="radio" name="impMode" value="xc"> 全按行测</label>
+        <label><input type="radio" name="impMode" value="sl"> 全按申论</label>
+      </div>
+      <div class="imp-prev" id="impPrev"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="impCancel">取消</button>
+      <button class="modal-ok" id="impOk">导入</button>
     </div>
   </div>
 </div>
@@ -1825,7 +1903,13 @@ function renderSuan(){
       if(row) openSsDetail(row.dataset.ssdate);
     };
     list.querySelectorAll('[data-ssdel]').forEach(b=>{
-      b.onclick=()=>{ pushUndo('删除速算记录'); delete SS[b.dataset.ssdel]; saveSuan(); renderSuan(); showToast('已删除该条速算记录'); };
+      b.onclick=()=>{
+        const sd = b.dataset.ssdel;
+        pushUndo('删除速算记录');
+        if(SS[sd]) trashPush({kind:'suan', date:sd, txt:'速算记录 '+sd.slice(5).replace('-','/'), data:JSON.parse(JSON.stringify(SS[sd]))});
+        delete SS[sd]; saveSuan(); renderSuan();
+        showToast('已删除该条速算记录，可在回收站恢复');
+      };
     });
   }
   // 曲线
@@ -1973,6 +2057,7 @@ function openSsDetail(d){
   document.getElementById('ssDetailDel').onclick=()=>{
     if(confirm('确定删除 '+d.slice(5)+' 的速算记录吗？')){
       pushUndo('删除速算记录');
+      if(SS[d]) trashPush({kind:'suan', date:d, txt:'速算记录 '+d.slice(5).replace('-','/'), data:JSON.parse(JSON.stringify(SS[d]))});
       delete SS[d];
       saveSuan(); renderSuan();
       document.getElementById('ssDetailMask').style.display='none';
@@ -2697,7 +2782,7 @@ document.getElementById('weekSummary').addEventListener('click', e=>{
 /* 点弹窗遮罩（背景）即关闭 */
 [
   ['apMask','apCancel'],['mvMask','mvCancel'],['edMask','edCancel'],['delMask','delCancel'],
-  ['opMask','opCancel'],['cpMask','cpCancel'],['hfMask','hfCancel'],['durMask','durCancel'],['extraMask','exCancel'],['durHistMask','durHistClose'],['arcMask','arcCancel'],['abMask','abCancel'],
+  ['opMask','opCancel'],['cpMask','cpCancel'],['hfMask','hfCancel'],['durMask','durCancel'],['extraMask','exCancel'],['durHistMask','durHistClose'],['arcMask','arcCancel'],['abMask','abCancel'],['impMask','impCancel'],['undoListMask','undoListClose'],['trashMask','trashClose'],
   ['wkDetailMask','wkDetailClose'],['catDetailMask','catDetailClose'],['catColorMask','catColorClose'],['mottoMask','mottoCancel'],['ckAllMask','ckAllCancel'],['ssDetailMask','ssDetailClose']
 ].forEach(p=>{
   const m = document.getElementById(p[0]);
@@ -3579,6 +3664,10 @@ function bindCks(){
   };
   const undoBtnEl = document.getElementById('undoBtn');
   if(undoBtnEl) undoBtnEl.onclick = (e)=>{ e.stopPropagation(); undoLast(); };
+  const trashTopEl = document.getElementById('trashOpenTop');
+  if(trashTopEl) trashTopEl.onclick = (ge)=>{ ge.stopPropagation(); openTrash(); };
+  const undoListBtnEl = document.getElementById('undoListBtn');
+  if(undoListBtnEl) undoListBtnEl.onclick = (e)=>{ e.stopPropagation(); openUndoList(); };
   const delayFoldHead = document.getElementById('delayFoldHead');
   if(delayFoldHead) delayFoldHead.onclick = ()=>{
     const f = document.getElementById('delayFold');
@@ -4080,11 +4169,109 @@ function opArchive(){
   document.getElementById('opMask').style.display = 'none';
   if(pendingOp){ const p=pendingOp; pendingOp=null; archiveTask(p.date, p.type, p.text); }
 }
+/* ===== 回收站：删掉的任务 / 速算记录留档，随时可恢复 ===== */
+const TRASH_KEY = 'gk72_trash';
+let TRASH = [];
+try{ const t = JSON.parse(localStorage.getItem(TRASH_KEY)||'[]'); if(Array.isArray(t)) TRASH = t; }catch(e){ TRASH = []; }
+function saveTrash(){ try{ localStorage.setItem(TRASH_KEY, JSON.stringify(TRASH)); }catch(e){ TRASH = TRASH.slice(0,60); } }
+function trashPush(item){
+  const it = Object.assign({id:'t'+Date.now()+Math.floor(Math.random()*1000), ts:Date.now()}, item);
+  TRASH.unshift(it);
+  while(TRASH.length > 200) TRASH.pop();
+  saveTrash();
+  renderTrashN();
+}
+function renderTrashN(){
+  // 回收站入口渲染在计划页（trashEntryHTML），随 refreshAll 刷新计数，这里无需额外处理
+  const el = document.getElementById('trashN');
+  if(el) el.textContent = TRASH.length;
+}
+function trashLabel(it){
+  if(it.kind==='suan') return '速算';
+  return it.type==='sl' ? '申论' : '行测';
+}
+function renderTrash(){
+  const body = document.getElementById('trashBody');
+  const title = document.getElementById('trashTitle');
+  if(title) title.textContent = '回收站（'+TRASH.length+' 条）';
+  if(!body) return;
+  if(!TRASH.length){ body.innerHTML = '<div style="font-size:12px;color:var(--ink2);padding:8px 0">回收站是空的。删掉的任务和速算记录会先放这里。</div>'; return; }
+  body.innerHTML = TRASH.map(it=>{
+    const d = new Date(it.ts||Date.now());
+    const when = (d.getMonth()+1)+'/'+d.getDate()+' '+impPad(d.getHours())+':'+impPad(d.getMinutes());
+    const src = (it.date||'').slice(5).replace('-','/');
+    return '<div class="trash-row"><div class="trash-main"><span class="trash-tag">'+trashLabel(it)+'</span>'+
+      '<span class="trash-txt">'+escHtml(it.txt||'')+'</span></div>'+
+      '<div class="trash-meta"><span>删于 '+when+' · 原日期 '+src+'</span>'+
+      '<span class="trash-btns"><button class="trash-btn" data-trash-restore="'+it.id+'">恢复</button>'+
+      '<button class="trash-btn del" data-trash-drop="'+it.id+'">彻底删</button></span></div></div>';
+  }).join('');
+  body.querySelectorAll('[data-trash-restore]').forEach(b=>{
+    b.onclick = ()=> restoreTrash(b.dataset.trashRestore);
+  });
+  body.querySelectorAll('[data-trash-drop]').forEach(b=>{
+    b.onclick = ()=> dropTrash(b.dataset.trashDrop);
+  });
+}
+function openTrash(){
+  renderTrash();
+  document.getElementById('trashMask').style.display = 'flex';
+}
+function restoreTrash(id){
+  const it = TRASH.find(x=>x.id===id);
+  if(!it) return;
+  pushUndo('从回收站恢复');
+  if(it.kind === 'task'){
+    const d = it.date, t = it.type;
+    const raw = it.raw || it.txt;
+    if(DELETED[d] && (DELETED[d][t]||[]).indexOf(raw) >= 0){
+      DELETED[d][t] = DELETED[d][t].filter(x=>x!==raw);
+      saveDeleted();
+    }
+    let exists = false;
+    try{
+      dayTasks(d).forEach(r=>{
+        ((r[t]||'').split('\n')).forEach(line=>{ if(stripCatOf(line) === it.txt) exists = true; });
+      });
+    }catch(e){}
+    if(!exists){
+      if(!CUSTOM[d]) CUSTOM[d] = {xc:[], sl:[]};
+      if(!CUSTOM[d][t]) CUSTOM[d][t] = [];
+      CUSTOM[d][t].push(raw);
+      saveCustom();
+    }
+  } else if(it.kind === 'suan'){
+    if(it.data) SS[it.date] = it.data;
+    saveSuan();
+  }
+  TRASH = TRASH.filter(x=>x.id!==id);
+  saveTrash();
+  refreshAll();
+  renderTrashN();
+  if(document.getElementById('trashMask').style.display === 'flex') renderTrash();
+  showToast('已恢复：'+(it.kind==='suan' ? it.date.slice(5)+' 速算记录' : (it.txt||'').slice(0,14)));
+}
+function dropTrash(id){
+  const it = TRASH.find(x=>x.id===id);
+  if(!it) return;
+  pushUndo('彻底删除回收站条目');
+  TRASH = TRASH.filter(x=>x.id!==id);
+  saveTrash(); refreshAll(); renderTrash();
+  showToast('已彻底删除这条记录');
+}
+function clearTrash(){
+  if(!TRASH.length){ showToast('回收站已经是空的'); return; }
+  if(!confirm('确定清空回收站？里面的 '+TRASH.length+' 条将无法恢复。')) return;
+  pushUndo('清空回收站');
+  TRASH = [];
+  saveTrash(); refreshAll(); renderTrash();
+  showToast('回收站已清空');
+}
 /* ===== 撤销上一步：删除/编辑/移动/打卡/时长/封存/休息日都留了一手 ===== */
 const UNDO_KEY = 'gk72_undo';
 let UNDO = [];
 try{ const u = JSON.parse(localStorage.getItem(UNDO_KEY)||'[]'); if(Array.isArray(u)) UNDO = u; }catch(e){ UNDO = []; }
-function undoStateKeys(){ return [CUSTOM_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, LS_KEY, DUR_KEY, PROG_KEY, ARCHIVE_KEY, REST_KEY, RESTOPS_KEY, SHIFT_KEY, SS_KEY]; }
+function undoStateKeys(){ return [CUSTOM_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, LS_KEY, DUR_KEY, PROG_KEY, ARCHIVE_KEY, REST_KEY, RESTOPS_KEY, SHIFT_KEY, SS_KEY, TRASH_KEY]; }
 function saveUndo(){
   try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }
   catch(e){ UNDO = UNDO.slice(-2); try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }catch(_){} }
@@ -4097,6 +4284,7 @@ function pushUndo(label){
   while(UNDO.length > 6) UNDO.shift();
   saveUndo();
   _undoToastPending = true;
+  _undoToastTs = UNDO[UNDO.length-1].ts;
 }
 function undoLastLabel(){ return UNDO.length ? UNDO[UNDO.length-1].label : ''; }
 function reloadStateFromStorage(){
@@ -4112,25 +4300,69 @@ function reloadStateFromStorage(){
   try{ RESTOPS = JSON.parse(localStorage.getItem(RESTOPS_KEY)||'{}'); }catch(e){ RESTOPS = {}; }
   try{ SHIFT = JSON.parse(localStorage.getItem(SHIFT_KEY)||'[]'); }catch(e){ SHIFT = []; }
   try{ SS = JSON.parse(localStorage.getItem(SS_KEY)||'{}'); }catch(e){ SS = {}; }
+  try{ const t = JSON.parse(localStorage.getItem(TRASH_KEY)||'[]'); TRASH = Array.isArray(t) ? t : []; }catch(e){ TRASH = []; }
 }
-function undoLast(){
-  if(!UNDO.length){ showToast('没有可以撤销的操作'); return; }
-  const fr = UNDO.pop();
-  Object.keys(fr.data).forEach(k=>{
-    const v = fr.data[k];
+function applyUndoSnapshot(data){
+  Object.keys(data).forEach(k=>{
+    const v = data[k];
     if(v===null || v===undefined) localStorage.removeItem(k); else localStorage.setItem(k, v);
   });
-  saveUndo();
   reloadStateFromStorage();
+  document.querySelectorAll('.modal-mask').forEach(m=>{ if(m.style.display === 'flex') m.style.display = 'none'; });
   refreshAll();
   if(typeof renderDurMgmt === 'function') renderDurMgmt();
   const h = document.getElementById('durHistMask');
   if(h && h.style.display==='flex' && typeof renderDurHist === 'function') renderDurHist();
-  showToast('已撤销：'+fr.label);
+}
+/* 回到第 i 帧之前：回退该帧及其之后的所有操作 */
+function undoTo(i, label){
+  if(i<0 || i>=UNDO.length) return;
+  const fr = UNDO[i];
+  const realLabel = label || fr.label;
+  UNDO = UNDO.slice(0, i);
+  saveUndo();
+  applyUndoSnapshot(fr.data);
+  showToast('已撤销：'+realLabel+'（计划已回到操作前）');
+}
+function undoLast(){
+  if(!UNDO.length){ showToast('没有可以撤销的操作'); return; }
+  undoTo(UNDO.length-1);
+}
+function renderUndoList(){
+  const el = document.getElementById('undoListBody');
+  if(!el) return;
+  if(!UNDO.length){ el.innerHTML = '<div style="font-size:12px;color:var(--ink2);padding:6px 0">还没有可撤销的操作</div>'; return; }
+  el.innerHTML = UNDO.slice().reverse().map((f,i)=>{
+    const idx = UNDO.length-1-i;
+    const d = new Date(f.ts);
+    const hm = impPad(d.getHours())+':'+impPad(d.getMinutes());
+    return '<div class="undo-row"><div class="undo-rl">'+escHtml(f.label)+'<i>'+hm+' · 第 '+(i+1)+' 近的操作</i></div>'+
+      '<button class="undo-row-btn" data-undo-to="'+idx+'">回到这之前</button></div>';
+  }).join('');
+  el.querySelectorAll('[data-undo-to]').forEach(b=>{
+    b.onclick = ()=> undoTo(+b.dataset.undoTo);
+  });
+}
+function openUndoList(){
+  renderUndoList();
+  document.getElementById('undoListMask').style.display = 'flex';
 }
 function undoBarHTML(){
   if(!UNDO.length) return '';
-  return '<div class="undo-bar"><span class="undo-txt">↩ 上一步：'+escHtml(undoLastLabel())+'</span><button class="undo-btn" id="undoBtn">撤销</button></div>';
+  return '<div class="undo-bar"><span class="undo-txt">↩ 上一步：'+escHtml(undoLastLabel())+'</span><button class="undo-more" id="undoListBtn" type="button">记录</button><button class="undo-btn" id="undoBtn">撤销</button></div>';
+}
+function trashEntryHTML(){
+  if(!TRASH.length){
+    return '<div class="trash-entry empty" id="trashOpenTop"><span class="te-ico">🗑</span><span class="te-txt">回收站（暂无记录）</span><span class="te-go">打开 ›</span></div>';
+  }
+  return '<div class="trash-entry" id="trashOpenTop"><span class="te-ico">🗑</span><span class="te-txt">回收站（'+TRASH.length+' 条可恢复）</span><span class="te-go">打开 ›</span></div>';
+}
+function renderTrashSlot(){
+  const slot = document.getElementById('trashSlot');
+  if(!slot) return;
+  slot.innerHTML = trashEntryHTML();
+  const el = document.getElementById('trashOpenTop');
+  if(el) el.onclick = (ge)=>{ ge.stopPropagation(); openTrash(); };
 }
 function renderUndoHint(){
   const el = document.getElementById('undoHint');
@@ -4300,6 +4532,85 @@ function restoreSelectedArc(ids){
   refreshAll();
   showToast('已取回 '+list.length+' 条，回到原来的日期');
 }
+/* ===== 纸质计划导入（拍照后贴文字） ===== */
+function impPad(n){ return String(n).padStart(2,'0'); }
+function impDateOf(line){
+  let m = line.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[日号]?/);
+  if(m) return m[1]+'-'+impPad(m[2])+'-'+impPad(m[3]);
+  m = line.match(/^(\d{1,2})月(\d{1,2})[日号]?/);
+  if(m) return '2026-'+impPad(m[1])+'-'+impPad(m[2]);
+  m = line.match(/^(\d{1,2})-(\d{1,2})(?!\d)/);
+  if(m) return '2026-'+impPad(m[1])+'-'+impPad(m[2]);
+  return '';
+}
+function parsePlanText(text, defDate, mode){
+  const out = [];
+  let curDate = defDate || todayStr();
+  String(text||'').split(/\r?\n/).forEach(raw=>{
+    let line = raw.replace(/^[\s\-•·*＊#>]+/,'').trim();
+    if(!line) return;
+    const d = impDateOf(line);
+    if(d){
+      const rest = line.replace(/^(\d{4}-)?\d{1,2}([-月])\d{1,2}[日号]?/,'').replace(/^[（(]?周?[一二三四五六日天][）)]?/,'').replace(/^[：:、,，\s]+/,'').trim();
+      curDate = d;
+      if(!rest) return;
+      line = rest;
+    }
+    let type = mode;
+    if(type === 'auto'){
+      type = /申论|大作文|作文|归纳概括|对策建议|综合分析|应用文|公文|材料/.test(line) ? 'sl' : 'xc';
+    }
+    out.push({date:curDate, type:type, text:line});
+  });
+  return out;
+}
+function impInputs(){
+  const txt = document.getElementById('impText');
+  const dt = document.getElementById('impDate');
+  const r = document.querySelector('input[name="impMode"]:checked');
+  return {txt: txt?txt.value:'', date: (dt&&dt.value)||todayStr(), mode: (r&&r.value)||'auto'};
+}
+function updateImpPrev(){
+  const el = document.getElementById('impPrev');
+  if(!el) return;
+  const v = impInputs();
+  const list = parsePlanText(v.txt, v.date, v.mode);
+  if(!list.length){ el.textContent = v.txt.trim()? '还没识别到任务行' : ''; return; }
+  const byDate = {};
+  list.forEach(it=>{ byDate[it.date] = (byDate[it.date]||0)+1; });
+  const xc = list.filter(i=>i.type==='xc').length, sl = list.length - xc;
+  el.textContent = '将导入 '+list.length+' 条（行测 '+xc+' · 申论 '+sl+'）→ '+
+    Object.keys(byDate).sort().map(d=> d.slice(5).replace('-','/')+'：'+byDate[d]+' 条').join('，');
+}
+function openImport(){
+  const dt = document.getElementById('impDate');
+  if(dt){ dt.value = todayStr(); dt.max = maxPlanDate(); }
+  const ta = document.getElementById('impText');
+  if(ta) ta.value = '';
+  updateImpPrev();
+  document.getElementById('impMask').style.display = 'flex';
+}
+function confirmImport(){
+  const v = impInputs();
+  const list = parsePlanText(v.txt, v.date, v.mode);
+  if(!list.length){ showToast(v.txt.trim()? '没识别到任务行，检查一下格式' : '先粘贴任务内容'); return; }
+  const bad = list.filter(it=> it.date < '2026-09-17' || it.date > maxPlanDate());
+  if(bad.length){ showToast('日期超出计划范围：'+bad[0].date.slice(5)); return; }
+  pushUndo('导入计划');
+  let added = 0, dup = 0;
+  list.forEach(it=>{
+    if(!CUSTOM[it.date]) CUSTOM[it.date] = {xc:[], sl:[]};
+    if(!CUSTOM[it.date][it.type]) CUSTOM[it.date][it.type] = [];
+    const arr = CUSTOM[it.date][it.type];
+    if(arr.indexOf(it.text) >= 0){ dup++; return; }
+    arr.push(it.text); added++;
+  });
+  saveCustom();
+  document.getElementById('impMask').style.display = 'none';
+  refreshAll();
+  const days = Object.keys(list.reduce((o,i)=>{ o[i.date]=1; return o; }, {}));
+  showToast('已导入 '+added+' 条到 '+(days.length===1? days[0].slice(5).replace('-','/') : days.length+' 天')+(dup? '，跳过重复 '+dup+' 条':''));
+}
 function undoLastBatch(){
   if(!ARCHIVE.length) return;
   const batch = ARCHIVE.reduce((m,a)=>Math.max(m, a.batch||0), 0);
@@ -4399,6 +4710,7 @@ function confirmCopy(){
   document.getElementById('cpMask').style.display = 'none';
   pendingCopy = null;
   cpDates = [];
+  pushUndo('复制任务');
   targets.forEach(d=>{
     if(!CUSTOM[d]) CUSTOM[d] = {xc:[], sl:[]};
     if(!CUSTOM[d][p.type]) CUSTOM[d][p.type] = [];
@@ -4445,6 +4757,7 @@ function confirmHalf(){
   const key = p.date+'|'+p.type+'|'+p.text;
   document.getElementById('hfMask').style.display = 'none';
   pendingHalf = null;
+  pushUndo('完成一部分');
   if(hours > 0){
     setTaskDur(durDate, p.type, p.text, hours);
     localStorage.setItem(LASTDUR_KEY, String(hours));
@@ -4535,19 +4848,32 @@ function confirmDelete(){
   if(!pendingDel) return;
   pushUndo('删除任务');
   const {date, type, text} = pendingDel;
+  let trashTxt = text;
+  try{ trashTxt = stripCatOf(text); }catch(e){}
+  try{
+    const raw = rawLineOf(date, type, text);
+    trashPush({kind:'task', date:date, type:type, txt:trashTxt, raw:raw});
+  }catch(e){}
   document.getElementById('delMask').style.display = 'none';
   // 自定义任务：遍历 CUSTOM，用 splitTasks 解析后比较 txt，找到实际存储的完整文本
   if(CUSTOM[date] && CUSTOM[date][type]){
     const fullText = CUSTOM[date][type].find(item=>{
       const parsed = splitTasks(item)[0];
-      return parsed && parsed.txt === text;
+      if(parsed && parsed.txt === text) return true;
+      if(item === text) return true;
+      try{
+        if(stripCatOf(item) === stripCatOf(text)) return true;
+      }catch(e){}
+      return false;
     });
     if(fullText){
       CUSTOM[date][type] = CUSTOM[date][type].filter(t=>t!==fullText);
       if(!CUSTOM[date].xc.length && !CUSTOM[date].sl.length) delete CUSTOM[date];
       for(const dd in REMOVE){ REMOVE[dd][type] = (REMOVE[dd][type]||[]).filter(t=>{
         const parsed = splitTasks(t)[0];
-        return !(parsed && parsed.txt === text);
+        if(parsed && parsed.txt === text) return false;
+        try{ if(stripCatOf(t) === stripCatOf(text)) return false; }catch(e){}
+        return true;
       }); if(!REMOVE[dd].xc.length && !REMOVE[dd].sl.length) delete REMOVE[dd]; }
       delete MOVED[date+'|'+type+'|'+fullText];
       saveCustom(); saveRemove(); saveMoved();
@@ -4566,7 +4892,7 @@ function confirmDelete(){
   delete doneMap[date+'|'+type+'|'+text];
   saveDone();
   pendingDel = null;
-  refreshAll(); showToast('已删除任务');
+  refreshAll(); showToast('已删除任务，可在回收站恢复');
 }
 let pendingMove = null;
 function askMove(date, type, text, dir){
@@ -4819,7 +5145,7 @@ function go(route){
   if(route==='weekly') { renderSz(); renderWeekly(); renderCatHours(); renderTrend(); }
   window.scrollTo(0,0);
 }
-function refreshAll(){ renderMotto(); renderPlanList(); refreshProgress(); renderCalendar(); renderUndoHint(); }
+function refreshAll(){ renderMotto(); renderPlanList(); refreshProgress(); renderCalendar(); renderUndoHint(); renderTrashN(); renderTrashSlot(); }
 
 /* ===== 云同步（GitHub Gist 当云端仓库） ===== */
 const SYNC_KEY='gk72_sync', SYNC_TS_KEY='gk72_syncts';
@@ -5020,6 +5346,7 @@ document.getElementById('apOk').onclick = ()=>{
   });
   if(!d || d<'2026-09-17' || d>'2026-12-31'){ showToast('请选择计划区间内的日期'); return; }
   if(!lines.length){ showToast('请填写至少一条任务'); return; }
+  pushUndo('添加任务');
   CUSTOM[d] = CUSTOM[d]||{xc:[],sl:[]};
   const target = (apCat==='申论') ? CUSTOM[d].sl : CUSTOM[d].xc;
   target.push(...lines);
@@ -5045,6 +5372,7 @@ function renderRestList2(){
     b.onclick = ()=>{
       const d = b.dataset.delRest;
       const op = RESTOPS[d];
+      pushUndo('取消休息日');
       if(op){
         if(op.type === 'shift'){
           SHIFT = SHIFT.filter(s=> !(s.from===d && s.days===1));
@@ -5481,15 +5809,20 @@ document.getElementById('calPrev').onclick = ()=>{ calMonth--; renderCalendar();
 document.getElementById('calNext').onclick = ()=>{ calMonth++; renderCalendar(); };
 document.getElementById('sheetMask').onclick = closeSheet;
 
-let toastTimer=null, _undoToastPending=false;
+let toastTimer=null, _undoToastPending=false, _undoToastTs=null;
 function showToast(msg){
   const t = document.getElementById('toast');
   const undoable = !!(_undoToastPending && UNDO && UNDO.length);
+  const frameTs = _undoToastTs;
   _undoToastPending = false;
   t.innerHTML = '<span class="toast-txt">'+escHtml(msg)+'</span>'+(undoable? '<button class="toast-undo" type="button">撤销</button>' : '');
   if(undoable){
     const b = t.querySelector('.toast-undo');
-    if(b) b.onclick = ()=>{ clearTimeout(toastTimer); t.classList.remove('show'); undoLast(); };
+    if(b) b.onclick = ()=>{
+      clearTimeout(toastTimer); t.classList.remove('show');
+      if(UNDO.length && UNDO[UNDO.length-1].ts === frameTs){ undoLast(); }
+      else { openUndoList(); showToast('这之后又有新操作，请在「撤销记录」里选这一步'); }
+    };
   }
   t.classList.add('show');
   clearTimeout(toastTimer);
@@ -5512,6 +5845,12 @@ document.getElementById('opEdit').onclick = opEdit;
 document.getElementById('opArchive').onclick = opArchive;
 document.getElementById('arcCancel').onclick = ()=>{ document.getElementById('arcMask').style.display='none'; pendingArc=null; };
 document.getElementById('arcOk').onclick = confirmRestoreArc;
+document.getElementById('impEntry').onclick = openImport;
+document.getElementById('impCancel').onclick = ()=>{ document.getElementById('impMask').style.display='none'; };
+document.getElementById('impOk').onclick = confirmImport;
+document.getElementById('impText').addEventListener('input', updateImpPrev);
+document.getElementById('impDate').addEventListener('change', updateImpPrev);
+document.querySelectorAll('input[name="impMode"]').forEach(r=>r.addEventListener('change', updateImpPrev));
 document.getElementById('abCancel').onclick = ()=>{ document.getElementById('abMask').style.display='none'; };
 document.getElementById('abPast').onclick = ()=>doBatchArchive('past');
 document.getElementById('abFuture').onclick = ()=>doBatchArchive('future');
@@ -5779,6 +6118,11 @@ document.getElementById('nodesReset').onclick = resetNodes;
 document.getElementById('elAdd').onclick = addExamLog;
 document.getElementById('bkExport').onclick = exportBackup;
 document.getElementById('undoBtnSet').onclick = undoLast;
+document.getElementById('undoLogBtn').onclick = openUndoList;
+document.getElementById('trashClose').onclick = ()=>{ document.getElementById('trashMask').style.display='none'; };
+document.getElementById('trashClear').onclick = clearTrash;
+try{ renderTrashN(); }catch(e){}
+document.getElementById('undoListClose').onclick = ()=>{ document.getElementById('undoListMask').style.display='none'; };
 document.getElementById('bkImportBtn').onclick = ()=>{ document.getElementById('bkFile').click(); };
 document.getElementById('bkFile').onchange = ()=>{ if(document.getElementById('bkFile').files.length) importBackup(document.getElementById('bkFile').files[0]); document.getElementById('bkFile').value=''; };
 /* 回到顶部 */
