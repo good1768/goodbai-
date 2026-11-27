@@ -3099,15 +3099,16 @@ const CAT_RULES = [
   ['机动补漏', /机动补漏|考前整理|后续计划参考|金榜题名/],
   ['资料分析', /速算|百化分/],
   ['套题模考', /套题|模考|涂卡|9-11|2-4\.30/],
-  ['政治理论', /政治理论|时政/],
+  ['政治理论', /政治理论|时政|政治/],
   ['默写', /默写|思维导图/],
   ['碎片时间', /碎片时间|成语|素材积累/],
   ['错题复盘', /错题|复盘日|复盘完毕|简单复盘/],
   ['言语理解', /言语|张弓/],
-  ['判断推理', /图推|刘义恒|花生|程意|海海刷|逻辑|类比|定义/],
+  ['判断推理', /图推|图形推理|图形|刘义恒|花生|程意|海海刷|逻辑|类比|定义/],
   ['数量关系', /数量/],
   ['资料分析', /资料|超大杯/],
   ['申论', /申论|袁东|白鹭|大作文|概括|对策|综合题|公文|应用文|5\.15|5\.18|5\.22|5\.25|5\.29|6\.1 |6\.5 |6\.8 /],
+  ['错题复盘', /复盘|错题/],
 ];
 function detectCat(text){
   for(const [cat, re] of CAT_RULES){
@@ -4579,8 +4580,13 @@ function updateImpPrev(){
   const byDate = {};
   list.forEach(it=>{ byDate[it.date] = (byDate[it.date]||0)+1; });
   const xc = list.filter(i=>i.type==='xc').length, sl = list.length - xc;
+  // 类别预览：按 detectCat 的名称聚合，导入前就能核对标签对不对
+  const cats = {};
+  list.forEach(i=>{ const c = detectCat(i.text); cats[c] = (cats[c]||0)+1; });
+  const catStr = Object.keys(cats).map(c=>c+' '+cats[c]).join(' · ');
   el.textContent = '将导入 '+list.length+' 条（行测 '+xc+' · 申论 '+sl+'）→ '+
-    Object.keys(byDate).sort().map(d=> d.slice(5).replace('-','/')+'：'+byDate[d]+' 条').join('，');
+    Object.keys(byDate).sort().map(d=> d.slice(5).replace('-','/')+'：'+byDate[d]+' 条').join('，')+
+    (catStr ? '｜标签：'+catStr : '');
 }
 function openImport(){
   const dt = document.getElementById('impDate');
