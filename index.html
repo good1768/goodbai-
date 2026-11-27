@@ -1564,6 +1564,14 @@ body.narrow .tune{gap:10px!important}
   <div class="modal">
     <div class="modal-title" id="catColorTitle">设置科目标签颜色</div>
     <div class="modal-body">
+      <div id="ccNameWrap" style="display:none;margin-bottom:10px">
+        <div class="modal-hint" style="font-weight:400;margin:0 0 6px">标签名（只改这一条任务）</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="ccName" maxlength="8" class="cc-hex" style="flex:1;width:auto;text-align:left" placeholder="如：政治理论">
+          <button class="cc-reset" id="ccNameSave" type="button">改标签</button>
+        </div>
+        <button class="cc-reset" id="ccNameReset" type="button" style="margin-top:8px;display:none">恢复自动识别</button>
+      </div>
       <div class="modal-hint" style="font-weight:400">点下面的颜色即可生效，计划里该科目的标签会立刻变。</div>
       <div class="cc-grid" id="ccGrid"></div>
       <div class="cc-picker">
@@ -2244,9 +2252,24 @@ document.getElementById('catDetailClose').onclick = ()=>{ document.getElementByI
 /* 计划页点科目标签 → 直接改该科目颜色 */
 const CC_SWATCHES = ['#2F9E63','#1E7A4B','#58A86C','#3B7DD8','#5A9BD8','#2C5F9E','#8B5CF6','#7A5ACF','#E8890C','#D97706','#D64545','#C0392B','#0E9F9F','#D4658F','#B08A2E','#6B7280'];
 let ccCat = '';
-function openCatColor(cat){
+let ccCtx = null; // {date,type,txt} 表示从某条任务点进来，可单独改标签名
+function openCatColor(cat, ctx){
   ccCat = cat;
-  document.getElementById('catColorTitle').textContent = '设置「'+cat+'」标签颜色';
+  ccCtx = ctx || null;
+  const nw = document.getElementById('ccNameWrap');
+  const ninp = document.getElementById('ccName');
+  const nreset = document.getElementById('ccNameReset');
+  if(nw){
+    if(ccCtx){
+      nw.style.display = '';
+      if(ninp) ninp.value = cat;
+      const hasOv = !!CATOV[catKeyOf(ccCtx.date, ccCtx.type, ccCtx.txt)];
+      if(nreset) nreset.style.display = hasOv ? '' : 'none';
+    } else {
+      nw.style.display = 'none';
+    }
+  }
+  document.getElementById('catColorTitle').textContent = ccCtx ? '标签「'+cat+'」' : '设置「'+cat+'」标签颜色';
   const cur = (COLORS.cats[cat] || CAT_COLOR[cat] || '#7C8C83').toLowerCase();
   document.getElementById('ccGrid').innerHTML = CC_SWATCHES.map(c=>
     '<div class="cc-swat'+(c.toLowerCase()===cur?' on':'')+'" data-c="'+c+'" style="background:'+c+'"></div>'
@@ -2398,13 +2421,50 @@ document.getElementById('ccReset').onclick = ()=>{
   showToast('已恢复「'+ccCat+'」默认颜色');
 };
 document.getElementById('catColorClose').onclick = ()=>{ document.getElementById('catColorMask').style.display='none'; };
+function ccSaveName(){
+  if(!ccCtx) return;
+  const inp = document.getElementById('ccName');
+  const v = String(inp ? inp.value : '').trim();
+  if(!v){ showToast('标签名不能为空'); return; }
+  pushUndo('改标签');
+  CATOV[catKeyOf(ccCtx.date, ccCtx.type, ccCtx.txt)] = v;
+  saveCatov();
+  ccCat = v;
+  refreshAll();
+  const nreset = document.getElementById('ccNameReset');
+  if(nreset) nreset.style.display = '';
+  document.getElementById('catColorTitle').textContent = '标签「'+v+'」';
+  syncCcInputs((COLORS.cats[v] || CAT_COLOR[v] || '#7C8C83').toLowerCase());
+  document.querySelectorAll('#ccGrid .cc-swat').forEach(s=>{
+    s.classList.toggle('on', s.dataset.c.toLowerCase() === (COLORS.cats[v] || CAT_COLOR[v] || '#7C8C83').toLowerCase());
+  });
+  showToast('已把这条改成「'+v+'」');
+}
+document.getElementById('ccNameSave').onclick = ccSaveName;
+document.getElementById('ccNameReset').onclick = ()=>{
+  if(!ccCtx) return;
+  const k = catKeyOf(ccCtx.date, ccCtx.type, ccCtx.txt);
+  if(!CATOV[k]) return;
+  pushUndo('恢复自动标签');
+  delete CATOV[k];
+  saveCatov();
+  refreshAll();
+  document.getElementById('ccNameReset').style.display = 'none';
+  showToast('已恢复自动识别的标签');
+};
 /* 点击任务卡里的科目标签（捕获阶段，不影响勾选/移动按钮） */
 document.addEventListener('click', e=>{
   const cat = e.target && e.target.closest ? e.target.closest('.task .cat') : null;
   if(cat){
     e.preventDefault();
     e.stopPropagation();
-    openCatColor(cat.textContent.trim());
+    const taskEl = cat.closest('.task');
+    const ck = taskEl ? taskEl.querySelector('.ck') : null;
+    let ctx = null;
+    if(ck && ck.dataset && ck.dataset.date && ck.dataset.txt){
+      ctx = {date:ck.dataset.date, type:ck.dataset.type || 'xc', txt:ck.dataset.txt};
+    }
+    openCatColor(cat.textContent.trim(), ctx);
   }
 }, true);
 function examLogSVG(labels, series, o){
@@ -3098,7 +3158,7 @@ function resetColors(){
 const CAT_RULES = [
   ['机动补漏', /机动补漏|考前整理|后续计划参考|金榜题名/],
   ['资料分析', /速算|百化分/],
-  ['套题模考', /套题|模考|涂卡|9-11|2-4\.30/],
+  ['套题模考', /套题|模考|涂卡|一套|套卷|真题|9-11|2-4\.30/],
   ['政治理论', /政治理论|时政|政治/],
   ['默写', /默写|思维导图/],
   ['碎片时间', /碎片时间|成语|素材积累/],
@@ -3115,6 +3175,16 @@ function detectCat(text){
     if(re.test(text)) return cat;
   }
   return '任务';
+}
+/* 手动改标签：按「日期|科目|任务文本」记住覆盖值，只影响这一条 */
+const CATOV_KEY = 'gk72_catov';
+let CATOV = {};
+try{ const _cv = JSON.parse(localStorage.getItem(CATOV_KEY)||'{}'); CATOV = (_cv && typeof _cv==='object') ? _cv : {}; }catch(e){ CATOV = {}; }
+function saveCatov(){ try{ localStorage.setItem(CATOV_KEY, JSON.stringify(CATOV)); }catch(e){} }
+function catKeyOf(date, type, txt){ return date+'|'+type+'|'+txt; }
+function catOf(date, type, txt, fallback){
+  const k = catKeyOf(date, type, txt);
+  return CATOV[k] || fallback || '任务';
 }
 function splitTasks(text){
   if(!text) return [];
@@ -3425,9 +3495,10 @@ function dayCardHTML(date, fold, delay, over){
       const dk = isDone(date,'xc',t.txt);
       const mvInfo = isCustOf(t.txt,'xc') ? movedInfo(date,'xc',t.txt) : {cls:'',tag:''};
       const dp = dupOf(t.txt);
+      const catX = catOf(date,'xc',t.txt,t.cat);
       html += '<div class="task'+mvInfo.cls+(dp?' dup':'')+(dk?' done':'')+'">' +
         '<div class="ck" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
-        '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+progTag(date,'xc',t.txt)+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
+        '<div class="bd"><span class="cat" style="background:'+catColor(catX)+'">'+catX+'</span><span class="txt">'+t.txt+mvInfo.tag+progTag(date,'xc',t.txt)+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
         '<div class="mv"><button class="mv-btn" data-mv="prev" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="前移一天">◀</button><button class="mv-btn" data-mv="next" data-date="'+date+'" data-type="xc" data-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="后移一天">▶</button><button class="mv-btn mv-dot" data-op-date="'+date+'" data-op-type="xc" data-op-txt="'+t.txt.replace(/"/g,'&quot;')+'" title="更多操作">⋯</button></div>' +
       '</div>';
     });
@@ -3437,9 +3508,10 @@ function dayCardHTML(date, fold, delay, over){
         const dk = isDone(date,'sl',t.txt);
         const mvInfo = isCustOf(t.txt,'sl') ? movedInfo(date,'sl',t.txt) : {cls:'',tag:''};
         const dp = dupOf(t.txt);
+        const catS = catOf(date,'sl',t.txt,t.cat);
         html += '<div class="task'+mvInfo.cls+(dp?' dup':'')+(dk?' done':'')+'" style="padding:6px 0;border:none">' +
           '<div class="ck" style="width:17px;height:17px" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
-          '<div class="bd"><span class="cat" style="background:'+catColor(t.cat)+'">'+t.cat+'</span><span class="txt">'+t.txt+mvInfo.tag+progTag(date,'sl',t.txt)+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
+          '<div class="bd"><span class="cat" style="background:'+catColor(catS)+'">'+catS+'</span><span class="txt">'+t.txt+mvInfo.tag+progTag(date,'sl',t.txt)+(dp?' <span class="dup-tag">重复×'+dp+'</span>':'')+'</span></div>' +
           '<div class="mv"><button class="mv-btn" data-mv="prev" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'">◀</button><button class="mv-btn" data-mv="next" data-date="'+date+'" data-type="sl" data-txt="'+t.txt.replace(/"/g,'&quot;')+'">▶</button><button class="mv-btn mv-dot" data-op-date="'+date+'" data-op-type="sl" data-op-txt="'+t.txt.replace(/"/g,'&quot;')+'">⋯</button></div></div>';
       });
       html += '</div>';
@@ -3527,7 +3599,12 @@ function renderPlanList(){
       html += emptyHTML('今天不在计划内');
     }
   } else if(planTab==='delay'){
-    const delayed = DATA.filter(r=> r.date < now && dayStatus(r.date)!=='done' && hasRealTasks(r.date));
+    const delayed = DATA.filter(r=>{
+      if(r.date >= now) return false;
+      if(dayStatus(r.date)==='done') return false;
+      if(REST.includes(r.date) || REST.includes(r.date.replace(/-/g,'/'))) return false;
+      return hasRealTasks(r.date);
+    });
     if(delayed.length){
       html += delayWarnHTML();
       html += '<div class="delay-hint">补卡：点任务前的圆圈补单条（可填用时）；点日期右上角"补打全部"一次完成当天。补完自动移出拖延计划。</div>';
@@ -4272,7 +4349,7 @@ function clearTrash(){
 const UNDO_KEY = 'gk72_undo';
 let UNDO = [];
 try{ const u = JSON.parse(localStorage.getItem(UNDO_KEY)||'[]'); if(Array.isArray(u)) UNDO = u; }catch(e){ UNDO = []; }
-function undoStateKeys(){ return [CUSTOM_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, LS_KEY, DUR_KEY, PROG_KEY, ARCHIVE_KEY, REST_KEY, RESTOPS_KEY, SHIFT_KEY, SS_KEY, TRASH_KEY]; }
+function undoStateKeys(){ return [CUSTOM_KEY, REMOVE_KEY, MOVED_KEY, DELETED_KEY, LS_KEY, DUR_KEY, PROG_KEY, ARCHIVE_KEY, REST_KEY, RESTOPS_KEY, SHIFT_KEY, SS_KEY, TRASH_KEY, CATOV_KEY]; }
 function saveUndo(){
   try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }
   catch(e){ UNDO = UNDO.slice(-2); try{ localStorage.setItem(UNDO_KEY, JSON.stringify(UNDO)); }catch(_){} }
@@ -4302,6 +4379,7 @@ function reloadStateFromStorage(){
   try{ SHIFT = JSON.parse(localStorage.getItem(SHIFT_KEY)||'[]'); }catch(e){ SHIFT = []; }
   try{ SS = JSON.parse(localStorage.getItem(SS_KEY)||'{}'); }catch(e){ SS = {}; }
   try{ const t = JSON.parse(localStorage.getItem(TRASH_KEY)||'[]'); TRASH = Array.isArray(t) ? t : []; }catch(e){ TRASH = []; }
+  try{ const cv = JSON.parse(localStorage.getItem(CATOV_KEY)||'{}'); CATOV = (cv && typeof cv==='object') ? cv : {}; }catch(e){ CATOV = {}; }
 }
 function applyUndoSnapshot(data){
   Object.keys(data).forEach(k=>{
@@ -4969,7 +5047,12 @@ function refreshProgress(){
   document.getElementById('weekCnt').textContent = '当前 '+wkDone+' | 目标 '+wkTotal;
   // 标签角标
   const nToday = td.total;
-  const nDelay = DATA.filter(r=> r.date < tStr && dayStatus(r.date)!=='done').length;
+  const nDelay = DATA.filter(r=>{
+    if(r.date >= tStr) return false;
+    if(dayStatus(r.date)==='done') return false;
+    if(REST.includes(r.date) || REST.includes(r.date.replace(/-/g,'/'))) return false;
+    return hasRealTasks(r.date);
+  }).length;
   document.getElementById('nToday').textContent = nToday? '('+nToday+')':'';
   document.getElementById('nDelay').textContent = nDelay? '('+nDelay+')':'';
   document.getElementById('nAll').textContent = '('+DATA.length+')';
